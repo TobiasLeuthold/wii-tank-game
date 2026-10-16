@@ -21,6 +21,7 @@ class TankGame {
     this.dctx = null;
     this.world = null;
     this.tanks = []; this.bullets = []; this.mines = []; this.particles = []; this.floaters = [];
+    this.wrecks = []; // destroyed co-op players waiting for a revive
 
     this.state = 'menu';
     this.prevState = null;
@@ -90,6 +91,7 @@ class TankGame {
   setupLevel(level, seed, nPlayers) {
     this.world = new World(level, seed);
     this.tanks = []; this.bullets = []; this.mines = []; this.particles = []; this.floaters = [];
+    this.wrecks = [];
     this.missionKills = [0, 0];
     this.newDecals();
     this.rebuildLayers();
@@ -270,6 +272,38 @@ class TankGame {
     }
   }
 
+  // ---- co-op revive -------------------------------------------------------
+  get reviveEnabled() { return this.mode !== 'versus' && this.numPlayers > 1; }
+
+  updateWrecks(dt) {
+    for (const w of this.wrecks) {
+      const helper = this.tanks.find(t => t.alive && t.team === 'player' &&
+        dist2(t.x, t.y, w.x, w.y) < REVIVE_R * REVIVE_R);
+      if (helper) w.progress += dt / REVIVE_TIME;
+      else w.progress = Math.max(0, w.progress - dt * 0.5);
+      if (w.progress >= 1) this.revive(w);
+    }
+    this.wrecks = this.wrecks.filter(w => w.progress < 1);
+  }
+
+  revive(w) {
+    const t = this.tanks.find(p => p.playerIndex === w.playerIndex);
+    if (!t || t.alive) return;
+    t.alive = true;
+    t.x = w.x; t.y = w.y;
+    t.vx = 0; t.vy = 0;
+    t.move = 0; t.rot = 0;
+    t.invuln = REVIVE_SHIELD;
+    t.cooldown = 0.3;
+    t.fireHeld = 0; t.holdMined = false;
+    t.fireQueued = false; t.mineQueued = false;
+    this.world.pushCircleOut(t, TANK_R);
+    addParticle(this, 'ring', t.x, t.y, { life: 0.5, size: 40, color: PLAYER_STYLE[t.playerIndex].ui });
+    FX.sparks(this, t.x, t.y, 12);
+    this.floaters.push({ x: t.x, y: t.y - 30, text: 'Revived!', color: PLAYER_STYLE[t.playerIndex].ui, life: 1.4 });
+    Sound.jingle('revive');
+  }
+
   // ---- input --------------------------------------------------------------
   // 1-player games aim with the mouse; 2-player games use the keyboard only.
   get mouseAim() { return this.numPlayers === 1; }
@@ -390,6 +424,7 @@ class TankGame {
       if (!t.alive) continue;
       t.cooldown -= dt;
       t.recoil = Math.max(0, t.recoil - dt * 30);
+      if (t.invuln > 0) t.invuln -= dt;
       if (t.team === 'player') controlPlayer(this, t, this.inputFor(t.playerIndex), dt);
       else updateAI(this, t, dt);
       moveTank(this, t, dt);
@@ -397,6 +432,7 @@ class TankGame {
     }
     updateBullets(this, dt);
     updateMines(this, dt);
+    if (this.wrecks.length) this.updateWrecks(dt);
     if (this.mode === 'versus') {
       // Short settle time so two shots that cross count as a draw.
       const alive = this.tanks.filter(t => t.alive);
@@ -478,11 +514,13 @@ class TankGame {
         Sprites.aimPath(ctx, path, PLAYER_STYLE[t.playerIndex].ui, hostile);
       }
     }
+    for (const w of this.wrecks) Sprites.reviveMarker(ctx, w, PLAYER_STYLE[w.playerIndex], this.time);
     for (const b of this.bullets) Sprites.bullet(ctx, b);
     for (const p of this.particles) Sprites.particle(ctx, p);
     for (const t of alive) {
       if (t.team !== 'player') continue;
       const st = PLAYER_STYLE[t.playerIndex];
+      if (t.invuln > 0) Sprites.shield(ctx, t, st.ui, this.time);
       if (this.numPlayers > 1) Sprites.tag(ctx, t, st.label, st.ui);
       if (t.fireHeld > 0.12 && !t.holdMined && t.mineCount < t.maxMines) {
         Sprites.charge(ctx, t, Math.min(1, t.fireHeld / MINE_HOLD), st.ui);

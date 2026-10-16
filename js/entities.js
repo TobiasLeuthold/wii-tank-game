@@ -18,6 +18,7 @@ class Tank {
     this.move = 0; this.rot = 0;          // drive inputs, -1..1
     this.vx = 0; this.vy = 0;             // smoothed velocity (AI uses it to lead shots)
     this.alive = true;
+    this.invuln = 0;          // shield time after a revive
     this.cooldown = 0.4;
     this.recoil = 0;
     this.bulletCount = 0;
@@ -137,12 +138,16 @@ function canHurt(game, attacker, victim) {
 
 function killTank(game, t, killer) {
   if (!t.alive) return;
+  if (t.invuln > 0) { FX.sparks(game, t.x, t.y, 8); Sound.pop(); return; }
   t.alive = false;
   t.alpha = 1;
   FX.explosion(game, t.x, t.y, t.colors.body, false);
   Art.decalCross(game.dctx, t.x, t.y, t.colors.body);
   Sound.explode(false);
   game.shake = Math.max(game.shake, 5);
+  if (t.team === 'player' && game.reviveEnabled) {
+    game.wrecks.push({ playerIndex: t.playerIndex, x: t.x, y: t.y, progress: 0 });
+  }
   if (killer && killer.team === 'player' && t.team === 'enemy') {
     const i = killer.playerIndex;
     game.scores[i]++;

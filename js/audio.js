@@ -182,6 +182,7 @@ const Sound = (() => {
       if (kind === 'start') notes([[G4, 0.12], [C5, 0.12], [E5, 0.12], [G5, 0.24], [E5, 0.12], [G5, 0.4]]);
       else if (kind === 'clear') notes([[C5, 0.1], [E5, 0.1], [G5, 0.1], [C6, 0.2], [0, 0.06], [A5, 0.1], [C6, 0.45]], 'triangle', 0.2);
       else if (kind === 'fail') notes([[G4, 0.22], [F5 / 2, 0.22], [E4, 0.22], [C4, 0.6]], 'triangle', 0.2);
+      else if (kind === 'revive') notes([[C5, 0.08], [E5, 0.08], [G5, 0.08], [C6, 0.22]], 'square', 0.09);
       else if (kind === 'win') notes([[C5, 0.12], [D5, 0.12], [E5, 0.12], [G5, 0.12], [C6, 0.3], [G5, 0.12], [C6, 0.6]], 'triangle', 0.2);
     }),
   };

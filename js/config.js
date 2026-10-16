@@ -29,6 +29,11 @@ const SPEED_ROCKET = 420;
 const START_LIVES = 3;
 const VS_WINS = 3; // versus: round wins needed to take the match
 
+// Co-op revive: stay on your teammate's wreck to bring them back.
+const REVIVE_TIME = 2.0;    // seconds on the wreck
+const REVIVE_R = 34;        // how close counts as "on the wreck"
+const REVIVE_SHIELD = 2.0;  // seconds of invulnerability after coming back
+
 const PLAYER_STATS = {
   speed: 105, reverse: 80, turn: 2.7,
   bulletSpeed: SPEED_NORMAL, bounces: 1, maxBullets: 5, cooldown: 0.12, maxMines: 2,

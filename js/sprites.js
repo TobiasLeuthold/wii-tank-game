@@ -277,6 +277,55 @@ const Sprites = {
     ctx.restore();
   },
 
+  // Pulsing ring on a destroyed teammate; fills while someone stands on it.
+  reviveMarker(ctx, w, style, time) {
+    const pulse = 0.5 + 0.5 * Math.sin(time * 5);
+    ctx.save();
+    ctx.translate(w.x, w.y);
+    ctx.fillStyle = rgba(style.ui, 0.12 + 0.1 * pulse);
+    ctx.beginPath();
+    ctx.arc(0, 0, REVIVE_R, 0, TAU);
+    ctx.fill();
+    ctx.setLineDash([6, 6]);
+    ctx.lineDashOffset = -time * 20;
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = rgba(style.ui, 0.6 + 0.4 * pulse);
+    ctx.beginPath();
+    ctx.arc(0, 0, REVIVE_R, 0, TAU);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (w.progress > 0) {
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = style.ui;
+      ctx.beginPath();
+      ctx.arc(0, 0, REVIVE_R, -Math.PI / 2, -Math.PI / 2 + TAU * w.progress);
+      ctx.stroke();
+    }
+    ctx.font = `700 12px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = '#fff';
+    ctx.strokeText(`REVIVE ${style.label}`, 0, REVIVE_R + 11);
+    ctx.fillStyle = style.ui;
+    ctx.fillText(`REVIVE ${style.label}`, 0, REVIVE_R + 11);
+    ctx.restore();
+  },
+
+  // Bubble around a freshly revived tank; flickers before it runs out.
+  shield(ctx, t, color, time) {
+    if (t.invuln < 0.6 && Math.sin(time * 30) < 0) return;
+    ctx.save();
+    ctx.fillStyle = rgba(color, 0.15);
+    ctx.strokeStyle = rgba(color, 0.75);
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(t.x, t.y, 25, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  },
+
   // Mouse crosshair (1-player mode).
   reticle(ctx, x, y, color) {
     ctx.save();
