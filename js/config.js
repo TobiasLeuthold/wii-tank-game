@@ -27,6 +27,7 @@ const SPEED_NORMAL = 225;
 const SPEED_ROCKET = 420;
 
 const START_LIVES = 3;
+const VS_WINS = 3; // versus: round wins needed to take the match
 
 const PLAYER_STATS = {
   speed: 105, reverse: 80, turn: 2.7,

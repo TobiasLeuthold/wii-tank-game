@@ -29,6 +29,8 @@ class TankGame {
     this.shake = 0;
     this.startFlash = 0;
 
+    this.mode = 'campaign'; // 'campaign' | 'versus'
+    this.vs = null;
     this.missionIndex = 0;
     this.numPlayers = 2;
     this.lives = START_LIVES;
@@ -82,20 +84,19 @@ class TankGame {
   }
 
   // ---- mission flow -------------------------------------------------------------
-  loadMission(index, demo = false) {
-    this.missionIndex = index;
-    this.world = new World(LEVELS[index], index + 1);
+  // Build the world and its tanks from a level map.
+  setupLevel(level, seed, nPlayers) {
+    this.world = new World(level, seed);
     this.tanks = []; this.bullets = []; this.mines = []; this.particles = []; this.floaters = [];
     this.missionKills = [0, 0];
     this.newDecals();
     this.rebuildLayers();
     const w = this.world, center = c => (c + 0.5) * CELL;
-    const nP = demo ? 0 : this.numPlayers;
-    for (let i = 0; i < nP; i++) {
+    for (let i = 0; i < nPlayers; i++) {
       const sp = w.players[i] || w.players[0] || { gx: 2, gy: 2 + i * 2 };
       this.tanks.push(new Tank({
         team: 'player', playerIndex: i, stats: PLAYER_STATS, body: PLAYER_STYLE[i].body,
-        x: center(sp.gx), y: center(sp.gy), angle: 0,
+        x: center(sp.gx), y: center(sp.gy), angle: sp.gx > GW / 2 ? Math.PI : 0,
       }));
     }
     for (const e of w.enemies) {
@@ -104,6 +105,11 @@ class TankGame {
       t.cooldown = rand(1.0, 2.0); // grace period after "Start!"
       this.tanks.push(t);
     }
+  }
+
+  loadMission(index, demo = false) {
+    this.missionIndex = index;
+    this.setupLevel(LEVELS[index], index + 1, demo ? 0 : this.numPlayers);
     if (!demo) {
       this.state = 'intro';
       this.stateTimer = 2.6;
@@ -112,7 +118,52 @@ class TankGame {
     }
   }
 
+  // ---- versus: P1 vs P2, first to VS_WINS rounds ----------------------------
+  startVersus() {
+    this.mode = 'versus';
+    this.numPlayers = 2;
+    const order = VERSUS_ARENAS.map((_, i) => i).sort(() => Math.random() - 0.5);
+    this.vs = { round: 0, wins: [0, 0], order, winner: -1, settle: null };
+    UI.hide();
+    this.nextRound();
+  }
+
+  nextRound() {
+    const vs = this.vs;
+    const arena = vs.order[vs.round % vs.order.length];
+    vs.round++;
+    vs.winner = -1;
+    vs.settle = null;
+    vs.arena = VERSUS_ARENAS[arena].name;
+    this.setupLevel(VERSUS_ARENAS[arena], 100 + arena, 2);
+    this.state = 'intro';
+    this.stateTimer = 2.2;
+    Sound.jingle('start');
+  }
+
+  roundOver(winner) {
+    this.state = 'roundover';
+    this.stateTimer = 2.6;
+    for (const b of this.bullets) destroyBullet(this, b, true);
+    this.bullets = [];
+    this.vs.winner = winner ? winner.playerIndex : -1;
+    if (winner) this.vs.wins[winner.playerIndex]++;
+    Sound.jingle(winner ? 'clear' : 'fail');
+  }
+
+  afterRound() {
+    const vs = this.vs;
+    if (Math.max(...vs.wins) >= VS_WINS) {
+      this.state = 'matchover';
+      Sound.jingle('win');
+      UI.showMatchOver(vs);
+    } else {
+      this.nextRound();
+    }
+  }
+
   newGame(players, mission) {
+    this.mode = 'campaign';
     this.numPlayers = players;
     this.lives = START_LIVES;
     this.scores = [0, 0];
@@ -124,6 +175,7 @@ class TankGame {
   continueSaved() {
     const p = Save.data.progress;
     if (!p) return;
+    this.mode = 'campaign';
     this.numPlayers = p.players === 1 ? 1 : 2;
     this.lives = Math.max(1, p.lives | 0);
     this.scores = [(p.scores && p.scores[0]) | 0, (p.scores && p.scores[1]) | 0];
@@ -133,7 +185,7 @@ class TankGame {
   }
 
   pause() {
-    if (!['intro', 'play', 'cleared', 'failed'].includes(this.state)) return;
+    if (!['intro', 'play', 'cleared', 'failed', 'roundover'].includes(this.state)) return;
     this.prevState = this.state;
     this.state = 'paused';
     this.keys.clear();
@@ -148,6 +200,7 @@ class TankGame {
   }
 
   restartMission() {
+    if (this.mode === 'versus') { this.startVersus(); return; }
     for (let i = 0; i < 2; i++) this.scores[i] -= this.missionKills[i];
     this.bonusLife = false;
     UI.hide();
@@ -297,6 +350,10 @@ class TankGame {
           if (this.state === 'cleared') this.afterCleared(); else this.afterFailed();
         }
         break;
+      case 'roundover':
+        this.stateTimer -= dt;
+        if (this.stateTimer <= 0) this.afterRound();
+        break;
     }
     updateParticles(this, dt);
   }
@@ -313,6 +370,15 @@ class TankGame {
     }
     updateBullets(this, dt);
     updateMines(this, dt);
+    if (this.mode === 'versus') {
+      // Short settle time so two shots that cross count as a draw.
+      const alive = this.tanks.filter(t => t.alive);
+      if (alive.length <= 1) {
+        this.vs.settle = (this.vs.settle ?? 0.6) - dt;
+        if (this.vs.settle <= 0) this.roundOver(alive[0] || null);
+      }
+      return;
+    }
     const enemiesLeft = this.tanks.some(t => t.alive && t.team === 'enemy');
     const playersLeft = this.tanks.some(t => t.alive && t.team === 'player');
     if (!enemiesLeft) this.missionCleared();
@@ -381,7 +447,8 @@ class TankGame {
         const tip = BARREL_LEN + 2;
         const path = this.world.shotPath(t.x + Math.cos(t.turret) * tip, t.y + Math.sin(t.turret) * tip,
           t.turret, t.stats.bounces, this.tanks, t);
-        Sprites.aimPath(ctx, path, PLAYER_STYLE[t.playerIndex].ui);
+        const hostile = path.tank && (path.tank.team === 'enemy' || this.mode === 'versus');
+        Sprites.aimPath(ctx, path, PLAYER_STYLE[t.playerIndex].ui, hostile);
       }
     }
     for (const b of this.bullets) Sprites.bullet(ctx, b);
@@ -401,10 +468,12 @@ class TankGame {
     if (this.state === 'menu') return;
     const st = this.state === 'paused' ? this.prevState : this.state;
     Sprites.hud(ctx, this);
-    if (st === 'intro') Sprites.intro(ctx, this);
+    const versus = this.mode === 'versus';
+    if (st === 'intro') { if (versus) Sprites.versusIntro(ctx, this.vs); else Sprites.intro(ctx, this); }
     if (this.startFlash > 0) Sprites.startFlash(ctx, this.startFlash / 0.9);
     if (st === 'cleared' && this.stateTimer < 2.8) Sprites.result(ctx, this, true);
     if (st === 'failed' && this.stateTimer < 2.4) Sprites.result(ctx, this, false);
+    if (st === 'roundover' && this.stateTimer < 2.2) Sprites.roundResult(ctx, this.vs);
   }
 }
 

@@ -91,6 +91,9 @@ const UI = {
     if (name === 'title') this.refreshTitle();
     if (name === 'missions') this.refreshMissions();
     if (name === 'options') this.refreshOptions();
+    if (name === 'pause') {
+      document.getElementById('btn-restart').textContent = this.game.mode === 'versus' ? 'Restart match' : 'Restart mission';
+    }
     if (name) {
       const first = this.screens[name].querySelector('.btn.primary:not([hidden]), .btn:not([hidden])');
       if (first) first.focus({ preventScroll: true });
@@ -115,6 +118,7 @@ const UI = {
       case 'continue': g.continueSaved(); break;
       case 'new1': g.newGame(1, 0); break;
       case 'new2': g.newGame(2, 0); break;
+      case 'versus': g.startVersus(); break;
       case 'resume': g.resume(); break;
       case 'restart': g.restartMission(); break;
       case 'quit': g.quitToMenu(); break;
@@ -233,6 +237,16 @@ const UI = {
     document.getElementById('gameover-info').textContent =
       `You made it to Mission ${mission + 1}. Try again from there with ${START_LIVES} lives.`;
     this.show('gameover');
+  },
+
+  showMatchOver(vs) {
+    const w = vs.wins[0] > vs.wins[1] ? 0 : 1;
+    const title = document.getElementById('match-title');
+    title.textContent = `${PLAYER_STYLE[w].label} wins!`;
+    title.style.color = PLAYER_STYLE[w].ui;
+    document.getElementById('match-info').textContent =
+      `${vs.wins[0]} – ${vs.wins[1]} after ${vs.round} rounds.`;
+    this.show('matchover');
   },
 
   showVictory(scores, players) {

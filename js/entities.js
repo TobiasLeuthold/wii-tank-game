@@ -130,7 +130,7 @@ const FX = {
 
 // ---- rules ----------------------------------------------------------------
 function canHurt(game, attacker, victim) {
-  if (!attacker) return true;
+  if (!attacker || game.mode === 'versus') return true;
   if (attacker.team === 'player' && victim.team === 'player') return game.options.friendlyFire;
   return true;
 }
@@ -369,7 +369,8 @@ function updateMines(game, dt) {
     if (m.age < MINE_ARM) continue;
     for (const t of game.tanks) {
       if (!t.alive || t === m.owner) continue;
-      const opposing = t.team !== m.owner.team || (t.team === 'player' && game.options.friendlyFire);
+      const opposing = t.team !== m.owner.team || game.mode === 'versus' ||
+        (t.team === 'player' && game.options.friendlyFire);
       if (opposing && dist2(t.x, t.y, m.x, m.y) < MINE_TRIGGER ** 2) { explodeMine(game, m); break; }
     }
   }

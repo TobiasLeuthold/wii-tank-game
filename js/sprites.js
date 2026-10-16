@@ -240,7 +240,7 @@ const Sprites = {
   },
 
   // Dotted preview of a shot's path; the part after a bounce is fainter.
-  aimPath(ctx, path, color) {
+  aimPath(ctx, path, color, hostile) {
     const pts = path.pts;
     if (pts.length < 2) return;
     ctx.save();
@@ -259,8 +259,8 @@ const Sprites = {
     }
     ctx.setLineDash([]);
     const end = pts[pts.length - 1];
-    if (path.tank && path.tank.team === 'enemy') {
-      // On target: ring around the enemy.
+    if (hostile) {
+      // On target: ring around the tank that would be hit.
       ctx.globalAlpha = 0.9;
       ctx.lineWidth = 2.5;
       ctx.strokeStyle = color;
@@ -361,9 +361,11 @@ const Sprites = {
   },
 
   hud(ctx, game) {
+    const versus = game.mode === 'versus';
+    const scores = versus ? game.vs.wins : game.scores;
     for (let i = 0; i < game.numPlayers; i++) {
       const p = game.tanks.find(t => t.playerIndex === i);
-      this.scorePills(ctx, i, PLAYER_STYLE[i].label, game.scores[i], PLAYER_STYLE[i].ui, !p || !p.alive);
+      this.scorePills(ctx, i, PLAYER_STYLE[i].label, scores[i], PLAYER_STYLE[i].ui, !p || !p.alive);
     }
     const enemies = game.tanks.filter(t => t.team === 'enemy' && t.alive).length;
     const w = 330, h = 34, x = WORLD_W / 2 - w / 2, y = WORLD_H - 38;
@@ -371,6 +373,11 @@ const Sprites = {
     ctx.fillStyle = '#fff';
     ctx.textBaseline = 'middle';
     ctx.font = `700 20px ${FONT}`;
+    if (versus) {
+      ctx.textAlign = 'center';
+      ctx.fillText(`Versus · Round ${game.vs.round} · First to ${VS_WINS}`, WORLD_W / 2, y + h / 2 + 1);
+      return;
+    }
     ctx.textAlign = 'left';
     ctx.fillText(`Mission ${game.missionIndex + 1}`, x + 16, y + h / 2 + 1);
     this.tankIcon(ctx, x + 172, y + h / 2, '#f3e3c3', 0.55);
@@ -419,6 +426,47 @@ const Sprites = {
     let lives = `Lives × ${game.lives}`;
     if (game.bonusLife) lives += '   •   Bonus life!';
     ctx.fillText(lives, WORLD_W / 2, y + 185);
+  },
+
+  // "P1 2 – 1 P2" in player colours, centred on cx.
+  versusScore(ctx, vs, cx, y, size) {
+    ctx.font = `700 ${size}px ${FONT}`;
+    ctx.textBaseline = 'middle';
+    const mid = ` ${vs.wins[0]} – ${vs.wins[1]} `;
+    const parts = [['P1', PLAYER_STYLE[0].ui], [mid, '#4a3a2a'], ['P2', PLAYER_STYLE[1].ui]];
+    const total = parts.reduce((s, [t]) => s + ctx.measureText(t).width, 0);
+    let x = cx - total / 2;
+    ctx.textAlign = 'left';
+    for (const [t, c] of parts) {
+      ctx.fillStyle = c;
+      ctx.fillText(t, x, y);
+      x += ctx.measureText(t).width;
+    }
+  },
+
+  versusIntro(ctx, vs) {
+    const y = this.card(ctx, 190);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#b5262a';
+    ctx.font = `700 56px ${FONT}`;
+    ctx.fillText(`Round ${vs.round}`, WORLD_W / 2, y + 56);
+    ctx.fillStyle = '#7a6a5a';
+    ctx.font = `600 18px ${FONT}`;
+    ctx.fillText(`Arena: ${vs.arena}  ·  first to ${VS_WINS} wins`, WORLD_W / 2, y + 100);
+    this.versusScore(ctx, vs, WORLD_W / 2, y + 145, 34);
+  },
+
+  roundResult(ctx, vs) {
+    const y = this.card(ctx, 170);
+    const w = vs.winner;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 50px ${FONT}`;
+    ctx.fillStyle = w >= 0 ? PLAYER_STYLE[w].ui : '#7a6a5a';
+    const matchWon = w >= 0 && vs.wins[w] >= VS_WINS;
+    ctx.fillText(w < 0 ? 'Draw!' : `${PLAYER_STYLE[w].label} ${matchWon ? 'wins the match!' : 'wins the round!'}`, WORLD_W / 2, y + 62);
+    this.versusScore(ctx, vs, WORLD_W / 2, y + 120, 30);
   },
 
   startFlash(ctx, f) {

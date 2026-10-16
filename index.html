@@ -25,6 +25,7 @@
           </button>
           <button class="btn" data-action="new2">New game &middot; 2 players</button>
           <button class="btn" data-action="new1">New game &middot; 1 player <small>Mouse aim</small></button>
+          <button class="btn" data-action="versus">Versus &middot; P1 vs P2 <small>First to 3 round wins</small></button>
           <div class="row">
             <button class="btn" data-goto="missions">Select mission</button>
             <button class="btn" data-goto="enemies">Enemy tanks</button>
@@ -126,6 +127,7 @@
           <li>Shots bounce off walls once, then pop. The dotted aim line (Options) shows the path.</li>
           <li>Each tank can have 5 shots and 2 mines out at once. Shots that hit each other both pop.</li>
           <li>A mine goes off after 10 s, when an enemy drives close, or when it gets shot. The blast also breaks cork blocks.</li>
+          <li>Versus: P1 against P2 in small arenas with no enemies. The first to win 3 rounds takes the match. Every hit counts, including your own bounced shots.</li>
           <li>Destroy every enemy tank to clear the mission. If all players are destroyed, you lose a life and retry. Every 5 missions cleared gives you an extra life.</li>
           <li><kbd>Esc</kbd> / <kbd>P</kbd> pause &middot; <kbd>M</kbd> music on/off. Progress saves automatically.</li>
         </ul>
@@ -141,7 +143,7 @@
         <h2>Paused</h2>
         <div class="buttons">
           <button class="btn primary" data-action="resume">Resume</button>
-          <button class="btn" data-action="restart">Restart mission</button>
+          <button class="btn" data-action="restart" id="btn-restart">Restart mission</button>
           <button class="btn" data-goto="missions">Select mission</button>
           <button class="btn ghost" data-action="quit">Main menu</button>
         </div>
@@ -155,6 +157,18 @@
         <p class="summary" id="gameover-info"></p>
         <div class="buttons">
           <button class="btn primary" data-action="retry">Try again</button>
+          <button class="btn ghost" data-action="quit">Main menu</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Versus match result -->
+    <section class="screen" id="screen-matchover">
+      <div class="panel">
+        <h2 class="big" id="match-title">Match over</h2>
+        <p class="summary" id="match-info"></p>
+        <div class="buttons">
+          <button class="btn primary" data-action="versus">Rematch</button>
           <button class="btn ghost" data-action="quit">Main menu</button>
         </div>
       </div>
