@@ -15,6 +15,7 @@ const Save = {
     d.seen = d.seen && typeof d.seen === 'object' ? d.seen : {};
     d.medals = d.medals && typeof d.medals === 'object' ? d.medals : {};
     d.stats = { ...Stats.empty(), ...(d.stats && typeof d.stats === 'object' ? d.stats : {}) };
+    d.custom = Array.isArray(d.custom) ? d.custom.filter(l => l && Array.isArray(l.rows) && l.rows.length === ROWS) : [];
     d.options = { ...DEFAULT_OPTIONS, ...(d.options || {}) };
     if (d.progress && !(d.progress.mission >= 0 && d.progress.mission < LEVELS.length)) delete d.progress;
     this.data = d;
@@ -37,7 +38,12 @@ const Save = {
     this.write();
     return better;
   },
-  reset() { this.data = { cleared: {}, seen: {}, medals: {}, stats: Stats.empty(), options: this.data.options }; this.write(); },
+  // Your own levels (and the editor draft) survive a progress reset.
+  reset() {
+    const d = this.data;
+    this.data = { cleared: {}, seen: {}, medals: {}, stats: Stats.empty(), options: d.options, custom: d.custom, editorDraft: d.editorDraft };
+    this.write();
+  },
 };
 
 // ---- Lifetime stats (kept in Save.data.stats, written with the save) --------
@@ -134,7 +140,10 @@ const UI = {
     if (name === 'options') this.refreshOptions();
     if (name === 'stats') this.buildStats();
     if (name === 'pause') {
-      document.getElementById('btn-restart').textContent = this.game.mode === 'versus' ? 'Restart match' : 'Restart mission';
+      const g = this.game, fromEditor = g.mode === 'custom' && g.custom.returnTo === 'editor';
+      document.getElementById('btn-restart').textContent =
+        g.mode === 'versus' ? 'Restart match' : g.mode === 'custom' ? 'Restart level' : 'Restart mission';
+      document.getElementById('btn-quit').textContent = fromEditor ? 'Back to editor' : 'Main menu';
     }
     if (name) {
       const first = this.screens[name].querySelector('.btn.primary:not([hidden]), .btn:not([hidden])');
@@ -166,6 +175,12 @@ const UI = {
       case 'quit': g.quitToMenu(); break;
       case 'retry': g.retryAfterGameOver(); break;
       case 'mission': g.newGame(this.selPlayers, +btn.dataset.index); break;
+      case 'editor': Editor.open(); break;
+      case 'custom': {
+        const l = Save.data.custom.find(x => x.id === btn.dataset.id);
+        if (l) g.startCustom({ name: l.name, map: l.rows }, this.selPlayers, 'missions');
+        break;
+      }
       case 'sel-players':
         this.selPlayers = +btn.dataset.players;
         this.refreshMissions();
@@ -334,6 +349,17 @@ const UI = {
         b.appendChild(best);
       }
     }
+    // Levels made in the editor
+    const custom = Save.data.custom;
+    document.getElementById('custom-section').hidden = !custom.length;
+    document.getElementById('custom-grid').innerHTML = custom.map(l => {
+      const dots = levelEnemies({ map: l.rows })
+        .map(ch => `<span class="dot" style="background:${ENEMY_TYPES[ch].body}"></span>`).join('');
+      return `<button class="mission custom" data-action="custom" data-id="${escapeHtml(l.id)}" title="${escapeHtml(l.name)}">` +
+        `<div class="num"><small>MY LEVEL</small><span class="cname">${escapeHtml(l.name)}</span></div>` +
+        `<div class="dots">${dots}</div></button>`;
+    }).join('');
+
     const count = [0, 0, 0, 0];
     for (const m of Object.values(Save.data.medals)) count[m.medal]++;
     document.getElementById('medal-summary').innerHTML = [3, 2, 1]

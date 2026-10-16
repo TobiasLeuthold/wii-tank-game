@@ -30,8 +30,10 @@ class TankGame {
     this.shake = 0;
     this.startFlash = 0;
 
-    this.mode = 'campaign'; // 'campaign' | 'versus'
+    this.mode = 'campaign'; // 'campaign' | 'versus' | 'custom' | 'editor'
     this.vs = null;
+    this.custom = null;     // { level, returnTo: 'editor' | 'missions' }
+    this.levelTitle = 'Mission 1';
     this.newEnemies = [];
     this.introAge = 0;
     this.missionIndex = 0;
@@ -120,6 +122,7 @@ class TankGame {
     this.missionIndex = index;
     this.setupLevel(LEVELS[index], index + 1, demo ? 0 : this.numPlayers);
     this.par = parTime(LEVELS[index]);
+    this.levelTitle = `Mission ${index + 1}`;
     this.newEnemies = [];
     if (!demo) {
       // Introduce enemy types the players haven't met yet (at most 3 per intro).
@@ -132,6 +135,38 @@ class TankGame {
       Sound.jingle('start');
       Save.setProgress({ mission: index, lives: this.lives, players: this.numPlayers, scores: [...this.scores] });
     }
+  }
+
+  // ---- custom levels (level editor) -----------------------------------------
+  startCustom(level, players, returnTo) {
+    this.mode = 'custom';
+    this.numPlayers = players;
+    this.custom = { level, returnTo };
+    this.lives = START_LIVES;
+    this.scores = [0, 0];
+    this.bonusLife = false;
+    UI.hide();
+    this.loadCustom();
+  }
+
+  loadCustom() {
+    const lvl = this.custom.level;
+    this.setupLevel(lvl, 999, this.numPlayers);
+    this.par = parTime(lvl);
+    this.levelTitle = lvl.name || 'Custom level';
+    this.newEnemies = [];
+    this.state = 'intro';
+    this.stateTimer = 2.2;
+    this.introAge = 0;
+    Sound.jingle('start');
+  }
+
+  leaveCustom() {
+    if (this.custom.returnTo === 'editor') { Editor.open(); return; }
+    this.mode = 'campaign';
+    this.loadMission(this.missionIndex, true);
+    this.state = 'menu';
+    UI.show('missions');
   }
 
   // ---- versus: P1 vs P2, first to VS_WINS rounds ----------------------------
@@ -226,6 +261,7 @@ class TankGame {
 
   restartMission() {
     if (this.mode === 'versus') { this.startVersus(); return; }
+    if (this.mode === 'custom') { UI.hide(); this.loadCustom(); return; }
     for (let i = 0; i < 2; i++) this.scores[i] -= this.missionKills[i];
     this.bonusLife = false;
     UI.hide();
@@ -234,6 +270,12 @@ class TankGame {
 
   quitToMenu() {
     Save.write();
+    if (this.mode === 'custom' && this.custom.returnTo === 'editor' && this.state === 'paused') {
+      UI.hide();
+      Editor.open();
+      return;
+    }
+    this.mode = 'campaign';
     this.loadMission(this.missionIndex, true);
     this.state = 'menu';
     UI.show('title');
@@ -252,12 +294,15 @@ class TankGame {
     for (const b of this.bullets) destroyBullet(this, b, true);
     this.bullets = [];
     Sound.jingle('clear');
-    Stats.count('missionsCleared');
-    Save.markCleared(this.missionIndex);
-    const par = parTime(LEVELS[this.missionIndex]);
+    const par = this.par;
     const clean = this.missionDeaths === 0, fast = this.missionTime <= par;
     const medal = clean && fast ? 3 : clean || fast ? 2 : 1;
-    const better = Save.recordMedal(this.missionIndex, medal, this.missionTime);
+    let better = { medal: false, time: false };
+    if (this.mode === 'campaign') {
+      Stats.count('missionsCleared');
+      Save.markCleared(this.missionIndex);
+      better = Save.recordMedal(this.missionIndex, medal, this.missionTime);
+    } else Save.write();
     this.lastMedal = { medal, time: this.missionTime, par, clean, fast, better };
   }
 
@@ -265,11 +310,12 @@ class TankGame {
     this.state = 'failed';
     this.stateTimer = 3.0;
     Sound.jingle('fail');
-    Stats.count('missionsFailed');
+    if (this.mode === 'campaign') Stats.count('missionsFailed');
     Save.write();
   }
 
   afterCleared() {
+    if (this.mode === 'custom') { this.leaveCustom(); return; }
     if (this.missionIndex >= LEVELS.length - 1) {
       this.state = 'victory';
       Save.clearProgress();
@@ -283,6 +329,11 @@ class TankGame {
   }
 
   afterFailed() {
+    if (this.mode === 'custom') {
+      // Testing from the editor goes straight back to editing; otherwise retry.
+      if (this.custom.returnTo === 'editor') this.leaveCustom(); else this.loadCustom();
+      return;
+    }
     this.lives--;
     this.bonusLife = false;
     if (this.lives <= 0) {
@@ -361,9 +412,17 @@ class TankGame {
     if (this.introAge > 0.8 && this.stateTimer > 0.6) this.stateTimer = 0.6;
   }
 
+  // Mouse event -> world coordinates.
+  toWorld(e) {
+    const r = this.canvas.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) / r.width) * WORLD_W, y: ((e.clientY - r.top) / r.height) * WORLD_H };
+  }
+
   bindInput() {
     window.addEventListener('keydown', e => {
       Sound.unlock();
+      // Typing in a text box (level editor) must not drive tanks.
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
       const code = e.code, inMenu = UI.current !== null;
       if (!inMenu && GAME_KEYS.has(code)) e.preventDefault();
       if (code === 'Escape' || (code === 'KeyP' && (!inMenu || UI.current === 'pause'))) {
@@ -391,9 +450,9 @@ class TankGame {
     });
     window.addEventListener('keyup', e => this.keys.delete(e.code));
     window.addEventListener('mousemove', e => {
-      const r = this.canvas.getBoundingClientRect();
-      this.mouse.x = ((e.clientX - r.left) / r.width) * WORLD_W;
-      this.mouse.y = ((e.clientY - r.top) / r.height) * WORLD_H;
+      const p = this.toWorld(e);
+      this.mouse.x = p.x;
+      this.mouse.y = p.y;
       this.mouse.seen = true;
     });
     this.canvas.addEventListener('mousedown', e => {
@@ -494,17 +553,17 @@ class TankGame {
     let want = null;
     if (this.options.music) {
       if (this.state === 'play') want = 'battle';
-      else if (this.state === 'menu') want = 'menu';
+      else if (this.state === 'menu' || this.state === 'editor') want = 'menu';
     }
     Sound.music(want);
   }
 
   // Hide the system cursor while the crosshair is drawn.
   updateCursor() {
-    const hide = this.showReticle();
-    if (hide !== this.cursorHidden) {
-      this.cursorHidden = hide;
-      this.canvas.style.cursor = hide ? 'none' : '';
+    const cursor = this.showReticle() ? 'none' : this.state === 'editor' ? 'crosshair' : '';
+    if (cursor !== this.cursorHidden) {
+      this.cursorHidden = cursor;
+      this.canvas.style.cursor = cursor;
     }
   }
 
@@ -556,6 +615,7 @@ class TankGame {
 
     ctx.setTransform(k, 0, 0, k, 0, 0);
     if (this.showReticle()) Sprites.reticle(ctx, this.mouse.x, this.mouse.y, PLAYER_STYLE[0].ui);
+    if (this.state === 'editor') { Editor.draw(ctx); return; }
     if (this.state === 'menu') return;
     const st = this.state === 'paused' ? this.prevState : this.state;
     Sprites.hud(ctx, this);
@@ -574,4 +634,5 @@ class TankGame {
 
 const game = new TankGame(document.getElementById('game'));
 UI.init(game);
+Editor.init(game);
 UI.show('title');

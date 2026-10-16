@@ -28,13 +28,14 @@
           <button class="btn" data-action="versus">Versus &middot; P1 vs P2 <small>First to 3 round wins</small></button>
           <div class="row">
             <button class="btn" data-goto="missions">Select mission</button>
-            <button class="btn" data-goto="enemies">Enemy tanks</button>
+            <button class="btn" data-action="editor">Level editor</button>
           </div>
           <div class="row three">
+            <button class="btn ghost" data-goto="enemies">Enemy tanks</button>
             <button class="btn ghost" data-goto="stats">Stats</button>
             <button class="btn ghost" data-goto="options">Options</button>
-            <button class="btn ghost" data-goto="help">How to play</button>
           </div>
+          <button class="btn ghost" data-goto="help">How to play</button>
         </div>
       </div>
     </section>
@@ -49,6 +50,10 @@
           <button data-action="sel-players" data-players="2">2 players</button>
         </div>
         <div class="mission-grid" id="mission-grid"></div>
+        <div id="custom-section" hidden>
+          <h3 class="section-title">My levels <small>made in the level editor</small></h3>
+          <div class="mission-grid" id="custom-grid"></div>
+        </div>
         <div class="buttons">
           <button class="btn ghost" data-goto="title">Back</button>
         </div>
@@ -143,6 +148,7 @@
           <li>Versus: P1 against P2 in small arenas with no enemies. The first to win 3 rounds takes the match. Every hit counts, including your own bounced shots.</li>
           <li>Co-op revive: if your teammate is destroyed, drive onto the pulsing ring at their wreck and stay there for 2 seconds. They come back with a short shield.</li>
           <li>Medals: <b>Gold</b> for clearing a mission with no tank lost and under the par time (shown at the top), <b>Silver</b> for one of the two, <b>Bronze</b> for clearing it.</li>
+          <li>Level editor: pick a piece from the bottom bar and paint with the left mouse button; the right button erases. Save your level, test it with &#9654; Test, or share it as a code. Saved levels show up under "My levels" in Select mission.</li>
           <li>Destroy every enemy tank to clear the mission. If all players are destroyed at once, you lose a life and retry. Every 5 missions cleared gives you an extra life.</li>
           <li><kbd>Esc</kbd> / <kbd>P</kbd> pause &middot; <kbd>M</kbd> music on/off. Progress saves automatically.</li>
         </ul>
@@ -160,7 +166,7 @@
           <button class="btn primary" data-action="resume">Resume</button>
           <button class="btn" data-action="restart" id="btn-restart">Restart mission</button>
           <button class="btn" data-goto="missions">Select mission</button>
-          <button class="btn ghost" data-action="quit">Main menu</button>
+          <button class="btn ghost" data-action="quit" id="btn-quit">Main menu</button>
         </div>
       </div>
     </section>
@@ -200,6 +206,32 @@
       </div>
     </section>
   </div>
+
+  <!-- Level editor toolbars (shown over the border blocks while editing) -->
+  <div id="editor-ui" hidden>
+    <div class="ed-bar ed-top">
+      <button class="ed-btn" data-ed="menu" title="Back to the main menu">&#9664; Menu</button>
+      <input id="ed-name" class="ed-input" maxlength="24" placeholder="Level name" aria-label="Level name">
+      <button class="ed-btn" data-ed="save">Save</button>
+      <select id="ed-load" class="ed-input" aria-label="Load a level"></select>
+      <button class="ed-btn" data-ed="delete" title="Delete the saved copy of this level">Delete</button>
+      <span class="ed-spacer"></span>
+      <button class="ed-btn" data-ed="clear">Clear</button>
+      <button class="ed-btn" data-ed="share" title="Copy a code others can import">Share code</button>
+      <button class="ed-btn" data-ed="import">Import code</button>
+      <div class="ed-seg" title="Players for the test run">
+        <button data-ed="p1">1P</button><button data-ed="p2">2P</button>
+      </div>
+      <button class="ed-btn primary" data-ed="test">&#9654; Test</button>
+    </div>
+    <div class="ed-code" id="ed-code" hidden>
+      <input id="ed-code-input" class="ed-input" placeholder="Paste a level code here" aria-label="Level code">
+      <button class="ed-btn primary ed-import-only" data-ed="import-go">Load</button>
+      <button class="ed-btn" data-ed="code-close">Close</button>
+    </div>
+    <output class="ed-toast" id="ed-toast"></output>
+    <div class="ed-bar ed-bottom" id="ed-palette"></div>
+  </div>
 </div>
 
 <script src="js/config.js"></script>
@@ -211,6 +243,7 @@
 <script src="js/entities.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/editor.js"></script>
 <script src="js/game.js"></script>
 </body>
 </html>

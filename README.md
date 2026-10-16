@@ -26,10 +26,12 @@ Esc / P pauses, and M turns music on/off.
 - Stats screen: shots fired, accuracy, tanks destroyed (also per enemy type), deaths, mines, revives, play time, medals and versus wins.
 - Co-op revive: drive onto your teammate's wreck for 2 seconds to bring them back.
 - Versus mode: P1 vs P2 in 5 arenas, first to 3 round wins.
+- Level editor: paint your own levels, test them, save them under "My levels" and share them as codes.
 - Progress saves automatically in the browser. Use **Continue** to resume, or **Select mission** to start any mission.
 - Options for an aim line, friendly fire, steering style, music and sound effects.
 
 ## Tweaking
 
+- `js/editor.js` is the level editor; custom levels are stored in the browser with the rest of your progress.
 - `js/levels.js` holds the mission maps as 22×15 text grids. The legend is at the top of the file.
 - `js/config.js` holds the stats for players and enemy tanks.

@@ -441,7 +441,8 @@ const Sprites = {
       ctx.font = `700 20px ${FONT}`;
     }
     ctx.textAlign = 'left';
-    ctx.fillText(`Mission ${game.missionIndex + 1}`, x + 16, y + h / 2 + 1);
+    const title = game.levelTitle.length > 13 ? game.levelTitle.slice(0, 12) + '…' : game.levelTitle;
+    ctx.fillText(title, x + 16, y + h / 2 + 1);
     this.tankIcon(ctx, x + 172, y + h / 2, '#f3e3c3', 0.55);
     ctx.fillText(`× ${enemies}`, x + 188, y + h / 2 + 1);
     ctx.fillStyle = '#ffd0d0';
@@ -474,7 +475,7 @@ const Sprites = {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#b5262a';
     ctx.font = `700 58px ${FONT}`;
-    ctx.fillText(`Mission ${game.missionIndex + 1}`, WORLD_W / 2, y + 58);
+    ctx.fillText(game.levelTitle, WORLD_W / 2, y + 58);
     ctx.fillStyle = '#4a3a2a';
     ctx.font = `600 24px ${FONT}`;
     ctx.fillText(`Enemy tanks: ${enemies.length}`, WORLD_W / 2, y + 108);
@@ -543,7 +544,7 @@ const Sprites = {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#b5262a';
     ctx.font = `700 50px ${FONT}`;
-    ctx.fillText(`Mission ${game.missionIndex + 1}`, WORLD_W / 2, y + 52);
+    ctx.fillText(game.levelTitle, WORLD_W / 2, y + 52);
     ctx.fillStyle = '#4a3a2a';
     ctx.font = `600 21px ${FONT}`;
     let line = `Enemy tanks: ${enemies.length}   •   Lives × ${game.lives}`;
