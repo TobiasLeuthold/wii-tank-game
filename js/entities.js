@@ -11,6 +11,7 @@ class Tank {
     this.id = nextTankId++;
     this.team = o.team;                   // 'player' | 'enemy'
     this.playerIndex = o.playerIndex ?? -1;
+    this.typeKey = o.typeKey || null;     // enemy type letter
     this.stats = o.stats;
     this.x = o.x; this.y = o.y;
     this.angle = o.angle || 0;
@@ -136,16 +137,20 @@ function canHurt(game, attacker, victim) {
   return true;
 }
 
+// Returns true if the tank was actually destroyed.
 function killTank(game, t, killer) {
-  if (!t.alive) return;
-  if (t.invuln > 0) { FX.sparks(game, t.x, t.y, 8); Sound.pop(); return; }
+  if (!t.alive) return false;
+  if (t.invuln > 0) { FX.sparks(game, t.x, t.y, 8); Sound.pop(); return false; }
   t.alive = false;
   t.alpha = 1;
   FX.explosion(game, t.x, t.y, t.colors.body, false);
   Art.decalCross(game.dctx, t.x, t.y, t.colors.body);
   Sound.explode(false);
   game.shake = Math.max(game.shake, 5);
-  if (t.team === 'player') game.missionDeaths++;
+  if (t.team === 'player') {
+    game.missionDeaths++;
+    Stats.add('deaths', t.playerIndex);
+  }
   if (t.team === 'player' && game.reviveEnabled) {
     game.wrecks.push({ playerIndex: t.playerIndex, x: t.x, y: t.y, progress: 0 });
   }
@@ -154,7 +159,10 @@ function killTank(game, t, killer) {
     game.scores[i]++;
     game.missionKills[i]++;
     game.floaters.push({ x: t.x, y: t.y - 24, text: '+1', color: PLAYER_STYLE[i].ui, life: 1.2 });
+    Stats.add('kills', i);
+    if (t.typeKey) Stats.killedType(t.typeKey);
   }
+  return true;
 }
 
 function tryFire(game, t) {
@@ -176,6 +184,7 @@ function tryFire(game, t) {
   t.recoil = 4;
   FX.muzzle(game, tx, ty, t.turret);
   Sound.shoot(b.rocket);
+  if (t.team === 'player') Stats.add('shots', t.playerIndex);
   return true;
 }
 
@@ -185,6 +194,7 @@ function tryLayMine(game, t) {
   game.mines.push(new Mine(t, t.x, t.y));
   t.mineCount++;
   Sound.mineDrop();
+  if (t.team === 'player') Stats.add('mines', t.playerIndex);
   return true;
 }
 
@@ -333,7 +343,10 @@ function updateBullets(game, dt) {
       if (!t.alive || (t === b.owner && !b.bounced) || !canHurt(game, b.owner, t)) continue;
       if (dist2(t.x, t.y, b.x, b.y) < (TANK_R + BULLET_R) ** 2) {
         destroyBullet(game, b, false);
-        killTank(game, t, b.owner);
+        const o = b.owner;
+        if (killTank(game, t, o) && o.team === 'player' && t !== o && (t.team === 'enemy' || game.mode === 'versus')) {
+          Stats.add('hits', o.playerIndex);
+        }
         break;
       }
     }

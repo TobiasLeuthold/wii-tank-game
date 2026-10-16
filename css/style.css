@@ -177,6 +177,37 @@ h3 { margin: 0 0 8px; font-size: 20px; }
 .trait.hot { background: #fde3e1; color: #a3231f; }
 .enemy-card p { margin: 0; font-size: 13.5px; font-weight: 500; line-height: 1.35; color: #3a4350; }
 
+/* title: row of three smaller buttons */
+.row.three .btn { font-size: 16px; padding: 9px 6px; }
+
+/* stats */
+#stats-body { text-align: left; }
+#stats-body h3 { margin: 16px 0 8px; font-size: 18px; color: var(--blue-dark); }
+.stats-empty { text-align: center; color: var(--muted); font-weight: 500; margin: 0 0 8px; }
+.stats-hero { text-align: center; margin: 0 0 12px; }
+.hero-value { font-size: 56px; font-weight: 600; line-height: 1; color: var(--ink); }
+.hero-label { font-size: 15px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+.stat-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tile { background: #fff; border-radius: 14px; padding: 9px 12px 10px; border: 2px solid #e1e8f1; }
+.tile-label { font-size: 13px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.tile-value { font-size: 26px; font-weight: 600; color: var(--ink); line-height: 1.2; }
+.medal-row { display: flex; gap: 12px; margin-top: 2px; }
+.medal-count { display: inline-flex; align-items: center; gap: 5px; font-size: 20px; font-weight: 600; }
+.medal-count .check { position: static; display: inline-block; width: 22px; height: 22px; line-height: 22px; font-size: 13px; text-align: center; border-radius: 50%; }
+.pdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+.stats-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 14px; overflow: hidden; font-weight: 500; }
+.stats-table th, .stats-table td { padding: 7px 14px; text-align: right; }
+.stats-table th:first-child, .stats-table td:first-child { text-align: left; color: #46505e; }
+.stats-table th:not(:first-child) { width: 120px; }
+.stats-table th { font-weight: 600; color: var(--ink); border-bottom: 2px solid #e1e8f1; }
+.stats-table td { font-variant-numeric: tabular-nums; border-top: 1px solid #eef2f7; color: var(--ink); }
+.type-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 6px; }
+.type-cell { background: #fff; border-radius: 12px; padding: 6px 2px 8px; text-align: center; border: 2px solid #e1e8f1; }
+.type-cell canvas { width: 48px; height: 38px; }
+.type-name { font-size: 12px; font-weight: 600; color: var(--muted); }
+.type-count { font-size: 20px; font-weight: 600; color: var(--ink); }
+.stats-note { font-size: 12.5px; color: var(--muted); font-weight: 500; margin: 12px 0 0; text-align: center; }
+
 /* options */
 .opt-list { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .opt { display: flex; align-items: center; gap: 14px; justify-content: space-between; background: #fff; border-radius: 14px; padding: 10px 14px; }
@@ -223,6 +254,8 @@ kbd {
 
 @media (max-width: 860px) {
   .enemy-grid { grid-template-columns: repeat(2, 1fr); }
+  .stat-tiles { grid-template-columns: repeat(2, 1fr); }
+  .type-grid { grid-template-columns: repeat(5, 1fr); }
 }
 
 @media (max-width: 640px) {

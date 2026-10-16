@@ -14,6 +14,7 @@ const Save = {
     d.cleared = d.cleared && typeof d.cleared === 'object' ? d.cleared : {};
     d.seen = d.seen && typeof d.seen === 'object' ? d.seen : {};
     d.medals = d.medals && typeof d.medals === 'object' ? d.medals : {};
+    d.stats = { ...Stats.empty(), ...(d.stats && typeof d.stats === 'object' ? d.stats : {}) };
     d.options = { ...DEFAULT_OPTIONS, ...(d.options || {}) };
     if (d.progress && !(d.progress.mission >= 0 && d.progress.mission < LEVELS.length)) delete d.progress;
     this.data = d;
@@ -36,8 +37,36 @@ const Save = {
     this.write();
     return better;
   },
-  reset() { this.data = { cleared: {}, seen: {}, medals: {}, options: this.data.options }; this.write(); },
+  reset() { this.data = { cleared: {}, seen: {}, medals: {}, stats: Stats.empty(), options: this.data.options }; this.write(); },
 };
+
+// ---- Lifetime stats (kept in Save.data.stats, written with the save) --------
+const Stats = {
+  empty() {
+    return {
+      playTime: 0,
+      shots: [0, 0], hits: [0, 0], kills: [0, 0], deaths: [0, 0], mines: [0, 0], revives: [0, 0],
+      byType: {},
+      missionsCleared: 0, missionsFailed: 0,
+      vsMatches: 0, vsWins: [0, 0], vsRounds: 0,
+    };
+  },
+  get d() { return Save.data.stats; },
+  // Per-player counter, e.g. Stats.add('shots', 0).
+  add(key, player, n = 1) { if (player >= 0 && player < 2) this.d[key][player] += n; },
+  count(key, n = 1) { this.d[key] += n; },
+  killedType(type) { this.d.byType[type] = (this.d.byType[type] || 0) + 1; },
+};
+
+function fmtNum(n) {
+  return n < 10000 ? Math.round(n).toLocaleString('en-US') : (n / 1000).toFixed(n < 100000 ? 1 : 0) + 'K';
+}
+function fmtDuration(s) {
+  s = Math.floor(s);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return h ? `${h}h ${m}m` : `${m}m ${String(s % 60).padStart(2, '0')}s`;
+}
+function fmtPct(part, whole) { return whole ? `${Math.round((100 * part) / whole)}%` : '–'; }
 
 // What makes each enemy special, for the "Enemy tanks" screen.
 const ENEMY_INFO = {
@@ -103,6 +132,7 @@ const UI = {
     if (name === 'title') this.refreshTitle();
     if (name === 'missions') this.refreshMissions();
     if (name === 'options') this.refreshOptions();
+    if (name === 'stats') this.buildStats();
     if (name === 'pause') {
       document.getElementById('btn-restart').textContent = this.game.mode === 'versus' ? 'Restart match' : 'Restart mission';
     }
@@ -120,7 +150,7 @@ const UI = {
   // Esc inside menus: go back one level.
   back() {
     if (this.current === 'missions') this.show(this.backTo);
-    else if (['options', 'help', 'enemies'].includes(this.current)) this.show('title');
+    else if (['options', 'help', 'enemies', 'stats'].includes(this.current)) this.show('title');
     else if (this.current === 'pause') this.game.resume();
   },
 
@@ -209,6 +239,71 @@ const UI = {
       ctx.scale(dpr, dpr);
       Sprites.tankIcon(ctx, 30, 23, s.body, 1.25, s.invisible ? 0.45 : 1);
       grid.appendChild(card);
+    }
+  },
+
+  buildStats() {
+    const s = Stats.d, sum = a => a[0] + a[1];
+    const medals = [0, 0, 0, 0];
+    for (const m of Object.values(Save.data.medals)) medals[m.medal]++;
+    const tile = (label, value, extra = '') =>
+      `<div class="tile"><div class="tile-label">${label}</div><div class="tile-value">${value}</div>${extra}</div>`;
+    const medalTile = [3, 2, 1].map(t =>
+      `<span class="medal-count"><span class="check medal medal-${t}">★</span>${medals[t]}</span>`).join('');
+    const rows = [
+      ['Shots fired', s.shots, fmtNum],
+      ['Hits', s.hits, fmtNum],
+      ['Accuracy', null, i => fmtPct(s.hits[i], s.shots[i])],
+      ['Enemy tanks destroyed', s.kills, fmtNum],
+      ['Times destroyed', s.deaths, fmtNum],
+      ['Mines laid', s.mines, fmtNum],
+      ['Teammates revived', s.revives, fmtNum],
+    ];
+    const head = [0, 1].map(i =>
+      `<th><span class="pdot" style="background:${PLAYER_STYLE[i].ui}"></span>${PLAYER_STYLE[i].label}</th>`).join('');
+    const body = rows.map(([label, arr, f]) =>
+      `<tr><td>${label}</td>${[0, 1].map(i => `<td>${arr ? f(arr[i]) : f(i)}</td>`).join('')}</tr>`).join('');
+    const types = Object.entries(ENEMY_TYPES).map(([k, t]) =>
+      `<div class="type-cell" title="${t.name}"><canvas data-type="${k}"></canvas>` +
+      `<div class="type-name">${t.name}</div><div class="type-count">${fmtNum(s.byType[k] || 0)}</div></div>`).join('');
+
+    document.getElementById('stats-body').innerHTML = `
+      ${sum(s.shots) === 0 && s.vsRounds === 0 ? '<p class="stats-empty">Play a mission to start collecting stats.</p>' : ''}
+      <div class="stats-hero">
+        <div class="hero-value">${fmtNum(sum(s.kills))}</div>
+        <div class="hero-label">Enemy tanks destroyed</div>
+      </div>
+      <div class="stat-tiles">
+        ${tile('Shots fired', fmtNum(sum(s.shots)))}
+        ${tile('Accuracy', fmtPct(sum(s.hits), sum(s.shots)))}
+        ${tile('Times destroyed', fmtNum(sum(s.deaths)))}
+        ${tile('Mines laid', fmtNum(sum(s.mines)))}
+        ${tile('Teammates revived', fmtNum(sum(s.revives)))}
+        ${tile('Missions cleared', fmtNum(s.missionsCleared))}
+        ${tile('Play time', fmtDuration(s.playTime))}
+        ${tile('Medals', '', `<div class="medal-row">${medalTile}</div>`)}
+      </div>
+      <h3>By player</h3>
+      <table class="stats-table"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>
+      <h3>Enemy tanks destroyed by type</h3>
+      <div class="type-grid">${types}</div>
+      <h3>Versus</h3>
+      <div class="stat-tiles four">
+        ${tile('Matches played', fmtNum(s.vsMatches))}
+        ${tile('Rounds played', fmtNum(s.vsRounds))}
+        ${tile('<span class="pdot" style="background:' + PLAYER_STYLE[0].ui + '"></span>P1 match wins', fmtNum(s.vsWins[0]))}
+        ${tile('<span class="pdot" style="background:' + PLAYER_STYLE[1].ui + '"></span>P2 match wins', fmtNum(s.vsWins[1]))}
+      </div>
+      <p class="stats-note">Accuracy counts shots that destroyed a tank. Reset stats under Options.</p>`;
+
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    for (const c of document.querySelectorAll('#stats-body canvas[data-type]')) {
+      c.width = 48 * dpr;
+      c.height = 38 * dpr;
+      const ctx = c.getContext('2d');
+      ctx.scale(dpr, dpr);
+      const t = ENEMY_TYPES[c.dataset.type];
+      Sprites.tankIcon(ctx, 22, 17, t.body, 0.95, t.invisible ? 0.5 : 1);
     }
   },
 

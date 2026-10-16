@@ -30,7 +30,8 @@
             <button class="btn" data-goto="missions">Select mission</button>
             <button class="btn" data-goto="enemies">Enemy tanks</button>
           </div>
-          <div class="row">
+          <div class="row three">
+            <button class="btn ghost" data-goto="stats">Stats</button>
             <button class="btn ghost" data-goto="options">Options</button>
             <button class="btn ghost" data-goto="help">How to play</button>
           </div>
@@ -65,6 +66,17 @@
       </div>
     </section>
 
+    <!-- Lifetime stats -->
+    <section class="screen" id="screen-stats">
+      <div class="panel wide xwide">
+        <h2>Stats</h2>
+        <div id="stats-body"></div>
+        <div class="buttons">
+          <button class="btn ghost" data-goto="title">Back</button>
+        </div>
+      </div>
+    </section>
+
     <!-- Options -->
     <section class="screen" id="screen-options">
       <div class="panel">
@@ -91,7 +103,7 @@
             <button class="toggle" data-action="opt" data-key="sound"></button>
           </div>
           <div class="opt">
-            <span>Saved progress<small>Clears missions cleared, medals and your continue point.</small></span>
+            <span>Saved progress<small>Clears missions cleared, medals, stats and your continue point.</small></span>
             <button class="toggle danger" data-action="reset-save" id="btn-reset">Reset</button>
           </div>
         </div>

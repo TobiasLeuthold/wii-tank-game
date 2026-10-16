@@ -107,7 +107,9 @@ class TankGame {
       }));
     }
     for (const e of w.enemies) {
-      const t = new Tank({ team: 'enemy', stats: ENEMY_TYPES[e.type], x: center(e.gx), y: center(e.gy), angle: Math.PI });
+      const t = new Tank({
+        team: 'enemy', stats: ENEMY_TYPES[e.type], typeKey: e.type, x: center(e.gx), y: center(e.gy), angle: Math.PI,
+      });
       t.ai = createAI(t);
       t.cooldown = rand(1.0, 2.0); // grace period after "Start!"
       this.tanks.push(t);
@@ -166,11 +168,16 @@ class TankGame {
     this.vs.winner = winner ? winner.playerIndex : -1;
     if (winner) this.vs.wins[winner.playerIndex]++;
     Sound.jingle(winner ? 'clear' : 'fail');
+    Stats.count('vsRounds');
+    Save.write();
   }
 
   afterRound() {
     const vs = this.vs;
     if (Math.max(...vs.wins) >= VS_WINS) {
+      Stats.count('vsMatches');
+      Stats.add('vsWins', vs.wins[0] > vs.wins[1] ? 0 : 1);
+      Save.write();
       this.state = 'matchover';
       Sound.jingle('win');
       UI.showMatchOver(vs);
@@ -206,6 +213,7 @@ class TankGame {
     this.prevState = this.state;
     this.state = 'paused';
     this.keys.clear();
+    Save.write();
     UI.show('pause');
   }
 
@@ -225,6 +233,7 @@ class TankGame {
   }
 
   quitToMenu() {
+    Save.write();
     this.loadMission(this.missionIndex, true);
     this.state = 'menu';
     UI.show('title');
@@ -243,6 +252,7 @@ class TankGame {
     for (const b of this.bullets) destroyBullet(this, b, true);
     this.bullets = [];
     Sound.jingle('clear');
+    Stats.count('missionsCleared');
     Save.markCleared(this.missionIndex);
     const par = parTime(LEVELS[this.missionIndex]);
     const clean = this.missionDeaths === 0, fast = this.missionTime <= par;
@@ -255,6 +265,8 @@ class TankGame {
     this.state = 'failed';
     this.stateTimer = 3.0;
     Sound.jingle('fail');
+    Stats.count('missionsFailed');
+    Save.write();
   }
 
   afterCleared() {
@@ -291,14 +303,15 @@ class TankGame {
         dist2(t.x, t.y, w.x, w.y) < REVIVE_R * REVIVE_R);
       if (helper) w.progress += dt / REVIVE_TIME;
       else w.progress = Math.max(0, w.progress - dt * 0.5);
-      if (w.progress >= 1) this.revive(w);
+      if (w.progress >= 1) this.revive(w, helper);
     }
     this.wrecks = this.wrecks.filter(w => w.progress < 1);
   }
 
-  revive(w) {
+  revive(w, helper) {
     const t = this.tanks.find(p => p.playerIndex === w.playerIndex);
     if (!t || t.alive) return;
+    if (helper) Stats.add('revives', helper.playerIndex);
     t.alive = true;
     t.x = w.x; t.y = w.y;
     t.vx = 0; t.vy = 0;
@@ -394,6 +407,7 @@ class TankGame {
     window.addEventListener('mousedown', () => Sound.unlock());
     window.addEventListener('blur', () => { this.keys.clear(); this.pause(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
+    window.addEventListener('pagehide', () => Save.write()); // keep stats from the current mission
   }
 
   // ---- simulation -----------------------------------------------------------
@@ -431,6 +445,7 @@ class TankGame {
 
   updatePlay(dt) {
     this.missionTime += dt;
+    Stats.d.playTime += dt;
     for (const t of this.tanks) {
       if (!t.alive) continue;
       t.cooldown -= dt;
