@@ -12,6 +12,7 @@ const Save = {
     try { d = JSON.parse(localStorage.getItem(this.KEY) || 'null'); } catch (e) { d = null; }
     if (!d || typeof d !== 'object') d = {};
     d.cleared = d.cleared && typeof d.cleared === 'object' ? d.cleared : {};
+    d.seen = d.seen && typeof d.seen === 'object' ? d.seen : {};
     d.options = { ...DEFAULT_OPTIONS, ...(d.options || {}) };
     if (d.progress && !(d.progress.mission >= 0 && d.progress.mission < LEVELS.length)) delete d.progress;
     this.data = d;
@@ -23,8 +24,10 @@ const Save = {
   setProgress(p) { this.data.progress = p; this.write(); },
   clearProgress() { delete this.data.progress; this.write(); },
   markCleared(i) { this.data.cleared[i] = true; this.write(); },
+  // Enemy types already introduced with a "New enemy!" card.
+  markSeen(types) { for (const k of types) this.data.seen[k] = true; this.write(); },
   setOptions(o) { this.data.options = { ...o }; this.write(); },
-  reset() { this.data = { cleared: {}, options: this.data.options }; this.write(); },
+  reset() { this.data = { cleared: {}, seen: {}, options: this.data.options }; this.write(); },
 };
 
 // What makes each enemy special, for the "Enemy tanks" screen.

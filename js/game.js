@@ -31,6 +31,8 @@ class TankGame {
 
     this.mode = 'campaign'; // 'campaign' | 'versus'
     this.vs = null;
+    this.newEnemies = [];
+    this.introAge = 0;
     this.missionIndex = 0;
     this.numPlayers = 2;
     this.lives = START_LIVES;
@@ -110,9 +112,15 @@ class TankGame {
   loadMission(index, demo = false) {
     this.missionIndex = index;
     this.setupLevel(LEVELS[index], index + 1, demo ? 0 : this.numPlayers);
+    this.newEnemies = [];
     if (!demo) {
+      // Introduce enemy types the players haven't met yet (at most 3 per intro).
+      const types = [...new Set(levelEnemies(LEVELS[index]))];
+      this.newEnemies = types.filter(k => !Save.data.seen[k]).slice(0, 3);
+      if (this.newEnemies.length) Save.markSeen(this.newEnemies);
       this.state = 'intro';
-      this.stateTimer = 2.6;
+      this.stateTimer = this.newEnemies.length ? 6 : 2.6;
+      this.introAge = 0;
       Sound.jingle('start');
       Save.setProgress({ mission: index, lives: this.lives, players: this.numPlayers, scores: [...this.scores] });
     }
@@ -136,8 +144,10 @@ class TankGame {
     vs.settle = null;
     vs.arena = VERSUS_ARENAS[arena].name;
     this.setupLevel(VERSUS_ARENAS[arena], 100 + arena, 2);
+    this.newEnemies = [];
     this.state = 'intro';
     this.stateTimer = 2.2;
+    this.introAge = 0;
     Sound.jingle('start');
   }
 
@@ -280,6 +290,20 @@ class TankGame {
     return input;
   }
 
+  isFireKey(code) {
+    for (let i = 0; i < this.numPlayers; i++) {
+      const map = this.keymap(i);
+      if (map.fire.includes(code) || map.mine.includes(code)) return true;
+    }
+    return false;
+  }
+
+  // Fire (or a click) shortens the mission intro; ignored right after it appears
+  // so a shot still held from the previous mission doesn't skip it.
+  skipIntro() {
+    if (this.introAge > 0.8 && this.stateTimer > 0.6) this.stateTimer = 0.6;
+  }
+
   bindInput() {
     window.addEventListener('keydown', e => {
       Sound.unlock();
@@ -296,6 +320,7 @@ class TankGame {
       }
       if (inMenu) return;
       this.keys.add(code);
+      if (!e.repeat && this.state === 'intro' && this.isFireKey(code)) this.skipIntro();
       if (e.repeat || this.state !== 'play') return;
       const nudge = !this.mouseAim && this.options.steering === 'tank';
       for (const t of this.tanks) {
@@ -316,6 +341,7 @@ class TankGame {
     });
     this.canvas.addEventListener('mousedown', e => {
       Sound.unlock();
+      if (e.button === 0 && this.state === 'intro') this.skipIntro();
       if (e.button !== 0 || !this.mouseAim || this.state !== 'play') return;
       e.preventDefault();
       const p = this.tanks.find(t => t.playerIndex === 0 && t.alive);
@@ -334,6 +360,7 @@ class TankGame {
     switch (this.state) {
       case 'intro':
         this.stateTimer -= dt;
+        this.introAge += dt;
         if (this.stateTimer <= 0) {
           this.state = 'play';
           this.startFlash = 0.9;
@@ -469,7 +496,11 @@ class TankGame {
     const st = this.state === 'paused' ? this.prevState : this.state;
     Sprites.hud(ctx, this);
     const versus = this.mode === 'versus';
-    if (st === 'intro') { if (versus) Sprites.versusIntro(ctx, this.vs); else Sprites.intro(ctx, this); }
+    if (st === 'intro') {
+      if (versus) Sprites.versusIntro(ctx, this.vs);
+      else if (this.newEnemies.length) Sprites.introWithNewEnemies(ctx, this, this.newEnemies);
+      else Sprites.intro(ctx, this);
+    }
     if (this.startFlash > 0) Sprites.startFlash(ctx, this.startFlash / 0.9);
     if (st === 'cleared' && this.stateTimer < 2.8) Sprites.result(ctx, this, true);
     if (st === 'failed' && this.stateTimer < 2.4) Sprites.result(ctx, this, false);

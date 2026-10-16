@@ -389,8 +389,7 @@ const Sprites = {
   },
 
   // Cream card across the middle of the screen (mission intro / results).
-  card(ctx, h) {
-    const y = WORLD_H / 2 - h / 2;
+  card(ctx, h, y = WORLD_H / 2 - h / 2) {
     ctx.fillStyle = 'rgba(30,15,0,0.25)';
     ctx.fillRect(0, 0, WORLD_W, WORLD_H);
     ctx.fillStyle = 'rgba(0,0,0,0.25)';
@@ -426,6 +425,113 @@ const Sprites = {
     let lives = `Lives × ${game.lives}`;
     if (game.bonusLife) lives += '   •   Bonus life!';
     ctx.fillText(lives, WORLD_W / 2, y + 185);
+  },
+
+  // Centred word-wrapped text; returns the y below the last line.
+  wrapText(ctx, text, cx, y, maxW, lh) {
+    const words = text.split(' ');
+    let line = '';
+    for (const w of words) {
+      const test = line ? line + ' ' + w : w;
+      if (line && ctx.measureText(test).width > maxW) {
+        ctx.fillText(line, cx, y);
+        y += lh;
+        line = w;
+      } else line = test;
+    }
+    if (line) { ctx.fillText(line, cx, y); y += lh; }
+    return y;
+  },
+
+  // Trait tags as pills, wrapped into centred rows; returns the y below them.
+  chips(ctx, traits, cx, y, maxW) {
+    ctx.font = `600 13px ${FONT}`;
+    const h = 22, gap = 5, pad = 9;
+    const rows = [[]];
+    let rowW = 0;
+    for (const [txt, hot] of traits) {
+      const w = ctx.measureText(txt).width + pad * 2;
+      if (rows[rows.length - 1].length && rowW + gap + w > maxW) { rows.push([]); rowW = 0; }
+      rows[rows.length - 1].push({ txt, hot, w });
+      rowW += (rowW ? gap : 0) + w;
+    }
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (const row of rows) {
+      const total = row.reduce((s, c) => s + c.w, 0) + gap * (row.length - 1);
+      let x = cx - total / 2;
+      for (const c of row) {
+        ctx.fillStyle = c.hot ? '#fde3e1' : '#eef2f7';
+        roundRectPath(ctx, x, y, c.w, h, h / 2);
+        ctx.fill();
+        ctx.fillStyle = c.hot ? '#a3231f' : '#46505e';
+        ctx.fillText(c.txt, x + c.w / 2, y + h / 2 + 1);
+        x += c.w + gap;
+      }
+      y += h + gap;
+    }
+    return y;
+  },
+
+  // Mission card moved up, with a "New enemy!" panel for first-time enemy types.
+  introWithNewEnemies(ctx, game, types) {
+    const enemies = game.tanks.filter(e => e.team === 'enemy');
+    const y = this.card(ctx, 140, 36);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#b5262a';
+    ctx.font = `700 50px ${FONT}`;
+    ctx.fillText(`Mission ${game.missionIndex + 1}`, WORLD_W / 2, y + 52);
+    ctx.fillStyle = '#4a3a2a';
+    ctx.font = `600 21px ${FONT}`;
+    let line = `Enemy tanks: ${enemies.length}   •   Lives × ${game.lives}`;
+    if (game.bonusLife) line += '   •   Bonus life!';
+    ctx.fillText(line, WORLD_W / 2, y + 100);
+
+    const px = 80, pw = WORLD_W - 160, py = 205, ph = types.length === 1 ? 265 : 345;
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    roundRectPath(ctx, px, py + 6, pw, ph, 26);
+    ctx.fill();
+    ctx.fillStyle = '#fffdf7';
+    ctx.strokeStyle = '#c8302c';
+    ctx.lineWidth = 4;
+    roundRectPath(ctx, px, py, pw, ph, 26);
+    ctx.fill();
+    ctx.stroke();
+    const label = types.length > 1 ? 'NEW ENEMIES!' : 'NEW ENEMY!';
+    ctx.font = `700 20px ${FONT}`;
+    const lw = ctx.measureText(label).width + 40;
+    ctx.fillStyle = '#c8302c';
+    roundRectPath(ctx, WORLD_W / 2 - lw / 2, py - 17, lw, 34, 17);
+    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, WORLD_W / 2, py + 1);
+
+    const colW = pw / types.length;
+    types.forEach((k, i) => {
+      const s = ENEMY_TYPES[k], cx = px + colW * (i + 0.5);
+      this.tankIcon(ctx, cx - 4, py + 62, s.body, 1.7, s.invisible ? 0.5 : 1);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#2c3440';
+      ctx.font = `700 28px ${FONT}`;
+      ctx.fillText(s.name, cx, py + 118);
+      const below = this.chips(ctx, enemyTraits(s), cx, py + 140, colW - 30);
+      ctx.fillStyle = '#3a4350';
+      ctx.font = `500 17px ${FONT}`;
+      ctx.textBaseline = 'middle';
+      this.wrapText(ctx, ENEMY_INFO[k] || '', cx, below + 14, colW - 44, 22);
+    });
+
+    if (game.introAge > 0.8) {
+      ctx.globalAlpha = 0.55 + 0.45 * Math.sin(game.time * 5);
+      ctx.fillStyle = '#7a6a5a';
+      ctx.font = `600 16px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(game.mouseAim ? 'Click to start' : 'Press fire to start', WORLD_W / 2, py + ph - 20);
+      ctx.globalAlpha = 1;
+    }
   },
 
   // "P1 2 – 1 P2" in player colours, centred on cx.
