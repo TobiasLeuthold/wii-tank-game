@@ -77,9 +77,9 @@ const Sprites = {
   },
 
   // Small static tank used in banners and the HUD.
-  tankIcon(ctx, x, y, color, s = 1) {
+  tankIcon(ctx, x, y, color, s = 1, alpha = 1) {
     const fake = {
-      x: 0, y: 0, angle: 0, turret: 0, recoil: 0, alpha: 1, treadL: 0, treadR: 0,
+      x: 0, y: 0, angle: 0, turret: 0, recoil: 0, alpha, treadL: 0, treadR: 0,
       colors: tankColors(color),
     };
     ctx.save();

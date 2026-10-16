@@ -27,6 +27,37 @@ const Save = {
   reset() { this.data = { cleared: {}, options: this.data.options }; this.write(); },
 };
 
+// What makes each enemy special, for the "Enemy tanks" screen.
+const ENEMY_INFO = {
+  B: 'Never moves. Its turret wobbles around, so many of its shots miss. A good first target.',
+  A: 'Drives around slowly and fires a single bouncing shot as soon as it has a line on you.',
+  T: 'Slow, but fires fast rockets. Rockets don’t bounce; they pop on the first wall.',
+  Y: 'Lays up to 4 mines and drives away from them. Watch the places it has been.',
+  R: 'Fires 3 shots in a quick burst. Keep a wall between you and it.',
+  G: 'Stationary sniper. Its fast rockets bounce twice, and it finds bank shots around walls.',
+  P: 'Fast and aggressive. Keeps up to 5 shots out, lays mines, dodges and finds bank shots.',
+  W: 'Turns invisible once the mission starts. Its tread marks and gun smoke give it away.',
+  K: 'The fastest tank. Fires fast rockets, dodges almost every shot and lays mines.',
+};
+
+// Short tags derived from the tank stats, so they stay true when stats change.
+function enemyTraits(s) {
+  const out = [];
+  const move = s.speed === 0 ? 'Stationary' : s.speed < 60 ? 'Slow' : s.speed < 90 ? 'Medium speed'
+    : s.speed <= PLAYER_STATS.speed ? 'Fast' : 'Faster than you';
+  out.push([move, s.speed > PLAYER_STATS.speed]);
+  const rocket = s.bulletSpeed >= SPEED_ROCKET;
+  out.push([`${s.maxBullets} ${rocket ? 'rocket' : 'shot'}${s.maxBullets > 1 ? 's' : ''} at once`, rocket]);
+  out.push([s.bounces === 0 ? 'No bounce' : s.bounces === 1 ? '1 bounce' : `${s.bounces} bounces`, s.bounces > 1]);
+  if (s.burst > 1) out.push([`${s.burst}-shot burst`, true]);
+  if (s.aim === 'smart') out.push(['Bank shots', true]);
+  else if (s.aim === 'lazy') out.push(['Wobbly aim', false]);
+  if (s.mines > 0) out.push([`Mines ×${s.mines}`, true]);
+  if (s.dodge >= 0.5) out.push(['Dodges', true]);
+  if (s.invisible) out.push(['Invisible', true]);
+  return out;
+}
+
 // ---- Menus (HTML overlay) -------------------------------------------------
 const UI = {
   game: null,
@@ -48,6 +79,7 @@ const UI = {
       if (b.dataset.action) this.action(b.dataset.action, b);
     });
     this.buildMissionGrid();
+    this.buildEnemyGrid();
     this.selPlayers = Save.data.progress?.players || 2;
   },
 
@@ -73,7 +105,7 @@ const UI = {
   // Esc inside menus: go back one level.
   back() {
     if (this.current === 'missions') this.show(this.backTo);
-    else if (this.current === 'options' || this.current === 'help') this.show('title');
+    else if (['options', 'help', 'enemies'].includes(this.current)) this.show('title');
     else if (this.current === 'pause') this.game.resume();
   },
 
@@ -139,6 +171,29 @@ const UI = {
       b.innerHTML = `<div class="num"><small>MISSION</small>${i + 1}</div><div class="dots">${dots}</div>`;
       grid.appendChild(b);
     });
+  },
+
+  buildEnemyGrid() {
+    const grid = document.getElementById('enemy-grid');
+    grid.innerHTML = '';
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    for (const [key, s] of Object.entries(ENEMY_TYPES)) {
+      const first = LEVELS.findIndex(l => l.map.some(row => row.includes(key)));
+      const card = document.createElement('div');
+      card.className = 'enemy-card';
+      card.style.borderLeftColor = shade(s.body, -0.15);
+      card.innerHTML = `
+        <div class="enemy-head">
+          <canvas width="${64 * dpr}" height="${50 * dpr}"></canvas>
+          <div><h3>${s.name}</h3><small>${first >= 0 ? `First seen in mission ${first + 1}` : ''}</small></div>
+        </div>
+        <div class="traits">${enemyTraits(s).map(([txt, hot]) => `<span class="trait${hot ? ' hot' : ''}">${txt}</span>`).join('')}</div>
+        <p>${ENEMY_INFO[key] || ''}</p>`;
+      const ctx = card.querySelector('canvas').getContext('2d');
+      ctx.scale(dpr, dpr);
+      Sprites.tankIcon(ctx, 30, 23, s.body, 1.25, s.invisible ? 0.45 : 1);
+      grid.appendChild(card);
+    }
   },
 
   refreshMissions() {

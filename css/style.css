@@ -143,6 +143,32 @@ h3 { margin: 0 0 8px; font-size: 20px; }
 }
 .mission.resume { border-color: var(--red); }
 
+/* enemy guide */
+.panel.xwide { width: min(900px, 100%); }
+.enemy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: left; }
+.enemy-card {
+  background: #fff;
+  border: 3px solid #cfdcec;
+  border-left-width: 8px;
+  border-radius: 16px;
+  padding: 8px 12px 10px;
+}
+.enemy-head { display: flex; align-items: center; gap: 8px; }
+.enemy-head canvas { width: 64px; height: 50px; flex: none; }
+.enemy-head h3 { margin: 0; font-size: 19px; line-height: 1.1; }
+.enemy-head small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); }
+.traits { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.trait {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2f7;
+  color: #46505e;
+}
+.trait.hot { background: #fde3e1; color: #a3231f; }
+.enemy-card p { margin: 0; font-size: 13.5px; font-weight: 500; line-height: 1.35; color: #3a4350; }
+
 /* options */
 .opt-list { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .opt { display: flex; align-items: center; gap: 14px; justify-content: space-between; background: #fff; border-radius: 14px; padding: 10px 14px; }
@@ -187,8 +213,13 @@ kbd {
 .rules { text-align: left; margin: 14px 0 0; padding-left: 20px; line-height: 1.5; font-weight: 500; }
 .summary { font-size: 18px; font-weight: 500; margin: 0 0 6px; line-height: 1.5; }
 
+@media (max-width: 860px) {
+  .enemy-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width: 640px) {
   .mission-grid { grid-template-columns: repeat(4, 1fr); }
+  .enemy-grid { grid-template-columns: 1fr; }
   .help-cols { grid-template-columns: 1fr; }
   .logo { font-size: 48px; }
 }

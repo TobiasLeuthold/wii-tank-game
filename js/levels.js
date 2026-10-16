@@ -5,7 +5,7 @@
 //   x  cork block     (like wood, but mine blasts destroy it)
 //   o  hole           (stops tanks, bullets fly over)
 //   1 2  player spawns
-//   B Brown  A Ash  T Marine(teal)  Y Yellow  R Pink  G Green  P Violet  W White  K Black
+//   B Brown  A Grey  T Teal  Y Yellow  R Pink  G Green  P Purple  W White  K Black
 const LEVELS = [
   // 1
   [

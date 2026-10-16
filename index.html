@@ -25,7 +25,10 @@
           </button>
           <button class="btn" data-action="new2">New game &middot; 2 players</button>
           <button class="btn" data-action="new1">New game &middot; 1 player <small>Mouse aim</small></button>
-          <button class="btn" data-goto="missions">Select mission</button>
+          <div class="row">
+            <button class="btn" data-goto="missions">Select mission</button>
+            <button class="btn" data-goto="enemies">Enemy tanks</button>
+          </div>
           <div class="row">
             <button class="btn ghost" data-goto="options">Options</button>
             <button class="btn ghost" data-goto="help">How to play</button>
@@ -43,6 +46,17 @@
           <button data-action="sel-players" data-players="2">2 players</button>
         </div>
         <div class="mission-grid" id="mission-grid"></div>
+        <div class="buttons">
+          <button class="btn ghost" data-goto="title">Back</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Enemy tank guide -->
+    <section class="screen" id="screen-enemies">
+      <div class="panel wide xwide">
+        <h2>Enemy tanks</h2>
+        <div class="enemy-grid" id="enemy-grid"></div>
         <div class="buttons">
           <button class="btn ghost" data-goto="title">Back</button>
         </div>

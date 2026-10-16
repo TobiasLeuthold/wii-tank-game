@@ -20,7 +20,7 @@ Esc / P pauses, and M turns music on/off.
 
 ## Features
 
-- 20 missions with 9 enemy tank types.
+- 20 missions with 9 enemy tank types. The **Enemy tanks** screen in the main menu explains what each one does.
 - Progress saves automatically in the browser. Use **Continue** to resume, or **Select mission** to start any mission.
 - Options for an aim line, friendly fire, steering style, music and sound effects.
 
