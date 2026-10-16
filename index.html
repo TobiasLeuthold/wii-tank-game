@@ -24,7 +24,7 @@
             Continue <small id="continue-info"></small>
           </button>
           <button class="btn" data-action="new2">New game &middot; 2 players</button>
-          <button class="btn" data-action="new1">New game &middot; 1 player</button>
+          <button class="btn" data-action="new1">New game &middot; 1 player <small>Mouse aim</small></button>
           <button class="btn" data-goto="missions">Select mission</button>
           <div class="row">
             <button class="btn ghost" data-goto="options">Options</button>
@@ -59,11 +59,19 @@
             <button class="toggle" data-action="opt" data-key="friendlyFire"></button>
           </div>
           <div class="opt">
-            <span>Steering<small>Tank: left/right rotates, up/down drives. Direction: tank turns to face the arrow you press.</small></span>
+            <span>Aim line<small>Dotted line showing where your shot goes, including the bounce.</small></span>
+            <button class="toggle" data-action="opt" data-key="aimLine"></button>
+          </div>
+          <div class="opt">
+            <span>Steering (2 players)<small>Tank: left/right rotates (tap for fine aim), up/down drives. Direction: tank turns to face the key you press.</small></span>
             <button class="toggle" data-action="opt" data-key="steering"></button>
           </div>
           <div class="opt">
-            <span>Sound<small>Also toggle in-game with M.</small></span>
+            <span>Music<small>Also toggle in-game with M.</small></span>
+            <button class="toggle" data-action="opt" data-key="music"></button>
+          </div>
+          <div class="opt">
+            <span>Sound effects</span>
             <button class="toggle" data-action="opt" data-key="sound"></button>
           </div>
           <div class="opt">
@@ -94,13 +102,18 @@
             <p><kbd>0</kbd> shoot (top row or numpad)</p>
             <p>Hold <kbd>0</kbd> or press <kbd>Num .</kbd> / <kbd>Enter</kbd> to drop a mine</p>
           </div>
+          <div class="help-card solo">
+            <h3>1 player <span class="chip blue">Mouse</span></h3>
+            <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive &middot; mouse aims the turret &middot; <kbd>Left click</kbd> shoot &middot; <kbd>Space</kbd> drop a mine</p>
+          </div>
         </div>
         <ul class="rules">
-          <li>Shots go where your tank faces. They bounce off walls once, then pop.</li>
+          <li>With 2 players, shots go where your tank faces. Tap left/right to turn just a little for long-range aim; hold to turn faster.</li>
+          <li>Shots bounce off walls once, then pop. The dotted aim line (Options) shows the path.</li>
           <li>Each tank can have 5 shots and 2 mines out at once. Shots that hit each other both pop.</li>
           <li>A mine goes off after 10 s, when an enemy drives close, or when it gets shot. The blast also breaks cork blocks.</li>
           <li>Destroy every enemy tank to clear the mission. If all players are destroyed, you lose a life and retry. Every 5 missions cleared gives you an extra life.</li>
-          <li><kbd>Esc</kbd> / <kbd>P</kbd> pause &middot; <kbd>M</kbd> mute. Progress saves automatically.</li>
+          <li><kbd>Esc</kbd> / <kbd>P</kbd> pause &middot; <kbd>M</kbd> music on/off. Progress saves automatically.</li>
         </ul>
         <div class="buttons">
           <button class="btn ghost" data-goto="title">Back</button>

@@ -115,6 +115,32 @@ class World {
     return { tank: null, len: maxLen };
   }
 
+  // Path of a shot for the aim line: start, each bounce, end point, and the
+  // first visible tank it reaches. Invisible tanks are not revealed.
+  shotPath(x, y, angle, bounces, tanks, owner, maxLen = 1400) {
+    const p = { x, y, vx: Math.cos(angle), vy: Math.sin(angle) };
+    const pts = [{ x, y }];
+    const rr = (TANK_R + BULLET_R) ** 2;
+    let left = bounces, bounced = false;
+    if (this.circleHitsWall(x, y, BULLET_R)) return { pts: [], tank: null };
+    for (let len = 0; len < maxLen; len += 4) {
+      if (this.stepProjectile(p, 4)) {
+        pts.push({ x: p.x, y: p.y });
+        if (left-- <= 0) return { pts, tank: null };
+        bounced = true;
+      }
+      for (const t of tanks) {
+        if (!t.alive || t.alpha < 0.3 || (t === owner && !bounced)) continue;
+        if (dist2(t.x, t.y, p.x, p.y) < rr) {
+          pts.push({ x: p.x, y: p.y });
+          return { pts, tank: t };
+        }
+      }
+    }
+    pts.push({ x: p.x, y: p.y });
+    return { pts, tank: null };
+  }
+
   // Breadth-first search over tiles (8 directions, no corner cutting).
   bfs(sx, sy, blocked) {
     const N = GW * GH;

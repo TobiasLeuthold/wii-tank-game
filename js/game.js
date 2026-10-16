@@ -12,6 +12,8 @@ class TankGame {
     Sound.setEnabled(this.options.sound);
 
     this.keys = new Set();
+    this.mouse = { x: WORLD_W / 2, y: WORLD_H / 2, seen: false };
+    this.cursorHidden = false;
     this.k = 0;
     this.floor = null;
     this.layers = null;
@@ -206,12 +208,23 @@ class TankGame {
   }
 
   // ---- input --------------------------------------------------------------
-  keymap(i) { return this.numPlayers === 1 ? KEYMAP_SOLO : KEYMAP[i]; }
+  // 1-player games aim with the mouse; 2-player games use the keyboard only.
+  get mouseAim() { return this.numPlayers === 1; }
+
+  keymap(i) { return this.mouseAim ? KEYMAP_MOUSE : KEYMAP[i]; }
 
   inputFor(i) {
     const map = this.keymap(i), keys = this.keys;
     const any = codes => codes.some(c => keys.has(c));
-    return { up: any(map.up), down: any(map.down), left: any(map.left), right: any(map.right), fire: any(map.fire) };
+    const input = {
+      up: any(map.up), down: any(map.down), left: any(map.left), right: any(map.right), fire: any(map.fire),
+      mouseAim: this.mouseAim, aim: null,
+    };
+    if (this.mouseAim && this.mouse.seen) {
+      const t = this.tanks.find(p => p.playerIndex === i);
+      if (t) input.aim = Math.atan2(this.mouse.y - t.y, this.mouse.x - t.x);
+    }
+    return input;
   }
 
   bindInput() {
@@ -225,20 +238,37 @@ class TankGame {
         return;
       }
       if (code === 'KeyM' && !e.repeat) {
-        this.setOptions({ ...this.options, sound: !this.options.sound });
+        this.setOptions({ ...this.options, music: !this.options.music });
         if (UI.current === 'options') UI.refreshOptions();
       }
       if (inMenu) return;
       this.keys.add(code);
       if (e.repeat || this.state !== 'play') return;
+      const nudge = !this.mouseAim && this.options.steering === 'tank';
       for (const t of this.tanks) {
         if (t.team !== 'player' || !t.alive) continue;
         const map = this.keymap(t.playerIndex);
         if (map.fire.includes(code)) t.fireQueued = true;
         if (map.mine.includes(code)) t.mineQueued = true;
+        if (nudge && map.left.includes(code)) t.nudge = -1;
+        if (nudge && map.right.includes(code)) t.nudge = 1;
       }
     });
     window.addEventListener('keyup', e => this.keys.delete(e.code));
+    window.addEventListener('mousemove', e => {
+      const r = this.canvas.getBoundingClientRect();
+      this.mouse.x = ((e.clientX - r.left) / r.width) * WORLD_W;
+      this.mouse.y = ((e.clientY - r.top) / r.height) * WORLD_H;
+      this.mouse.seen = true;
+    });
+    this.canvas.addEventListener('mousedown', e => {
+      Sound.unlock();
+      if (e.button !== 0 || !this.mouseAim || this.state !== 'play') return;
+      e.preventDefault();
+      const p = this.tanks.find(t => t.playerIndex === 0 && t.alive);
+      if (p) p.fireQueued = true;
+    });
+    window.addEventListener('mousedown', () => Sound.unlock());
     window.addEventListener('blur', () => { this.keys.clear(); this.pause(); });
     document.addEventListener('visibilitychange', () => { if (document.hidden) this.pause(); });
   }
@@ -299,7 +329,33 @@ class TankGame {
       while (this.acc >= STEP && n < 14) { this.update(STEP); this.acc -= STEP; n++; }
       if (n === 14) this.acc = 0;
     }
+    this.updateMusic();
+    this.updateCursor();
     this.render();
+  }
+
+  // Title screen gets the calm version, battles the full march; jingles play in between.
+  updateMusic() {
+    let want = null;
+    if (this.options.music) {
+      if (this.state === 'play') want = 'battle';
+      else if (this.state === 'menu') want = 'menu';
+    }
+    Sound.music(want);
+  }
+
+  // Hide the system cursor while the crosshair is drawn.
+  updateCursor() {
+    const hide = this.showReticle();
+    if (hide !== this.cursorHidden) {
+      this.cursorHidden = hide;
+      this.canvas.style.cursor = hide ? 'none' : '';
+    }
+  }
+
+  showReticle() {
+    return this.mouseAim && this.mouse.seen && UI.current === null &&
+      ['intro', 'play', 'cleared', 'failed'].includes(this.state);
   }
 
   // ---- drawing --------------------------------------------------------------
@@ -319,6 +375,15 @@ class TankGame {
     const alive = this.tanks.filter(t => t.alive).sort((a, b) => a.y - b.y);
     for (const t of alive) Sprites.tank(ctx, t);
     ctx.drawImage(this.layers.blocks, 0, 0, WORLD_W, WORLD_H);
+    if (this.options.aimLine && (this.state === 'play' || this.state === 'intro')) {
+      for (const t of alive) {
+        if (t.team !== 'player') continue;
+        const tip = BARREL_LEN + 2;
+        const path = this.world.shotPath(t.x + Math.cos(t.turret) * tip, t.y + Math.sin(t.turret) * tip,
+          t.turret, t.stats.bounces, this.tanks, t);
+        Sprites.aimPath(ctx, path, PLAYER_STYLE[t.playerIndex].ui);
+      }
+    }
     for (const b of this.bullets) Sprites.bullet(ctx, b);
     for (const p of this.particles) Sprites.particle(ctx, p);
     for (const t of alive) {
@@ -332,6 +397,7 @@ class TankGame {
     for (const f of this.floaters) Sprites.floater(ctx, f);
 
     ctx.setTransform(k, 0, 0, k, 0, 0);
+    if (this.showReticle()) Sprites.reticle(ctx, this.mouse.x, this.mouse.y, PLAYER_STYLE[0].ui);
     if (this.state === 'menu') return;
     const st = this.state === 'paused' ? this.prevState : this.state;
     Sprites.hud(ctx, this);

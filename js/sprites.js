@@ -239,6 +239,68 @@ const Sprites = {
     ctx.restore();
   },
 
+  // Dotted preview of a shot's path; the part after a bounce is fainter.
+  aimPath(ctx, path, color) {
+    const pts = path.pts;
+    if (pts.length < 2) return;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.setLineDash([0.1, 9]);
+    for (const [w, c] of [[5, 'rgba(255,255,255,0.7)'], [3, color]]) {
+      ctx.lineWidth = w;
+      ctx.strokeStyle = c;
+      for (let i = 0; i < pts.length - 1; i++) {
+        ctx.globalAlpha = i === 0 ? 0.75 : 0.4;
+        ctx.beginPath();
+        ctx.moveTo(pts[i].x, pts[i].y);
+        ctx.lineTo(pts[i + 1].x, pts[i + 1].y);
+        ctx.stroke();
+      }
+    }
+    ctx.setLineDash([]);
+    const end = pts[pts.length - 1];
+    if (path.tank && path.tank.team === 'enemy') {
+      // On target: ring around the enemy.
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      ctx.arc(path.tank.x, path.tank.y, TANK_R + 8, 0, TAU);
+      ctx.stroke();
+    } else {
+      ctx.globalAlpha = pts.length > 2 ? 0.4 : 0.75;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(end.x, end.y, 3.5, 0, TAU);
+      ctx.fill();
+    }
+    ctx.restore();
+  },
+
+  // Mouse crosshair (1-player mode).
+  reticle(ctx, x, y, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.lineCap = 'round';
+    for (const [w, c] of [[6, '#fff'], [3, color]]) {
+      ctx.lineWidth = w;
+      ctx.strokeStyle = c;
+      ctx.beginPath();
+      ctx.arc(0, 0, 9, 0, TAU);
+      for (let i = 0; i < 4; i++) {
+        const a = Math.PI / 4 + (i * Math.PI) / 2;
+        ctx.moveTo(Math.cos(a) * 13, Math.sin(a) * 13);
+        ctx.lineTo(Math.cos(a) * 19, Math.sin(a) * 19);
+      }
+      ctx.stroke();
+    }
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(0, 0, 2, 0, TAU);
+    ctx.fill();
+    ctx.restore();
+  },
+
   floater(ctx, f) {
     ctx.globalAlpha = Math.min(1, f.life * 2);
     ctx.font = `700 18px ${FONT}`;

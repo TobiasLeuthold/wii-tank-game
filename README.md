@@ -13,14 +13,16 @@ Double-click `index.html`. It opens in Chrome or Edge.
 |---|---|---|---|
 | P1 (blue) | W A S D | Space | hold Space, or E |
 | P2 (red) | Arrow keys | 0 (top row or numpad) | hold 0, or Num . / Enter |
+| 1 player | W A S D, aim with the mouse | Left click | Space |
 
-Esc / P pauses, and M mutes.
+In 2-player mode, tap left/right to turn just a little for long shots; hold to turn faster.
+Esc / P pauses, and M turns music on/off.
 
 ## Features
 
 - 20 missions with 9 enemy tank types.
 - Progress saves automatically in the browser. Use **Continue** to resume, or **Select mission** to start any mission.
-- Options for friendly fire, steering style and sound.
+- Options for an aim line, friendly fire, steering style, music and sound effects.
 
 ## Tweaking
 

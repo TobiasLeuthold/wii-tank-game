@@ -31,6 +31,9 @@ class Tank {
     this.mineQueued = false;
     this.fireHeld = 0;
     this.holdMined = false;
+    this.turnDir = 0;
+    this.turnHeld = 0;
+    this.nudge = 0;
     this.ai = null;
   }
 }
@@ -259,24 +262,37 @@ function moveTank(game, t, dt) {
   }
 }
 
+// Turn the hull toward a screen direction and drive once roughly aligned.
+// With allowReverse (mouse aim), drive backwards when that is the shorter turn.
+function steerToward(t, want, dt, allowReverse) {
+  const s = t.stats;
+  let d = angleDiff(t.angle, want), dir = 1;
+  if (allowReverse && Math.abs(d) > Math.PI / 2 + 0.2) { d = angleDiff(t.angle, want + Math.PI); dir = -1; }
+  const maxRot = allowReverse ? 1.4 : 1;
+  t.rot = clamp(d / (s.turn * dt), -maxRot, maxRot);
+  const a = Math.abs(d);
+  const amount = a < 0.5 ? 1 : a < 1.2 ? 0.35 : 0;
+  t.move = dir > 0 ? amount : -amount * (s.speed / s.reverse); // same speed both ways
+}
+
 function controlPlayer(game, t, input, dt) {
-  if (game.options.steering === 'direct') {
-    const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-    const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
-    if (dx || dy) {
-      const d = angleDiff(t.angle, Math.atan2(dy, dx));
-      t.rot = clamp(d / (t.stats.turn * dt), -1, 1);
-      const a = Math.abs(d);
-      t.move = a < 0.5 ? 1 : a < 1.2 ? 0.35 : 0;
-    } else {
-      t.rot = 0;
-      t.move = 0;
-    }
+  const dx = (input.right ? 1 : 0) - (input.left ? 1 : 0);
+  const dy = (input.down ? 1 : 0) - (input.up ? 1 : 0);
+  if (input.mouseAim || game.options.steering === 'direct') {
+    if (dx || dy) steerToward(t, Math.atan2(dy, dx), dt, input.mouseAim);
+    else { t.rot = 0; t.move = 0; }
   } else {
-    t.rot = (input.right ? 1 : 0) - (input.left ? 1 : 0);
-    t.move = (input.up ? 1 : 0) - (input.down ? 1 : 0);
+    // Tank steering: a tap nudges, holding ramps up to full turn speed.
+    if (dx !== t.turnDir) { t.turnDir = dx; t.turnHeld = 0; }
+    else if (dx) t.turnHeld += dt;
+    const r = Math.min(1, t.turnHeld / TURN_RAMP);
+    const rate = TURN_MIN_RATE + (t.stats.turn - TURN_MIN_RATE) * r * r;
+    t.rot = dx * (rate / t.stats.turn);
+    t.move = -dy;
+    if (t.nudge) { t.angle = normAngle(t.angle + t.nudge * TURN_NUDGE); t.nudge = 0; }
   }
-  t.turret = t.angle; // players always shoot where the tank faces
+  // Keyboard players shoot where the tank faces; with the mouse the turret follows the cursor.
+  t.turret = input.aim ?? t.angle;
 
   if (t.fireQueued) { t.fireQueued = false; tryFire(game, t); }
   if (input.fire) {

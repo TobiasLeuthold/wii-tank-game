@@ -29,9 +29,14 @@ const SPEED_ROCKET = 420;
 const START_LIVES = 3;
 
 const PLAYER_STATS = {
-  speed: 105, reverse: 80, turn: 3.1,
+  speed: 105, reverse: 80, turn: 2.7,
   bulletSpeed: SPEED_NORMAL, bounces: 1, maxBullets: 5, cooldown: 0.12, maxMines: 2,
 };
+
+// Tank-style steering accelerates: a tap turns a little, holding speeds up.
+const TURN_NUDGE = 0.012;   // rad turned instantly on each key press
+const TURN_MIN_RATE = 0.25; // rad/s right after pressing
+const TURN_RAMP = 0.4;      // s until full turn speed (PLAYER_STATS.turn)
 
 const PLAYER_STYLE = [
   { label: 'P1', body: '#2f6ed8', ui: '#3d8fe0' },
@@ -67,12 +72,15 @@ const KEYMAP = [
   { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'],
     fire: ['Digit0', 'Numpad0'], mine: ['NumpadDecimal', 'NumpadEnter', 'Enter', 'ControlRight', 'Period'] },
 ];
-// In 1-player mode P1 may use either key set.
-const KEYMAP_SOLO = Object.fromEntries(Object.keys(KEYMAP[0]).map(k => [k, KEYMAP[0][k].concat(KEYMAP[1][k])]));
+// 1-player mode: drive with WASD (or arrows), aim with the mouse, left click shoots.
+const KEYMAP_MOUSE = {
+  up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
+  fire: [], mine: ['Space', 'KeyE', 'KeyQ'],
+};
 // Keys whose browser default (scrolling, button activation) must be suppressed.
 const GAME_KEYS = new Set([].concat(...KEYMAP.map(m => [].concat(...Object.values(m)))));
 
-const DEFAULT_OPTIONS = { friendlyFire: true, steering: 'tank', sound: true };
+const DEFAULT_OPTIONS = { friendlyFire: true, aimLine: true, steering: 'tank', music: true, sound: true };
 
 const FONT = '"Fredoka", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
 

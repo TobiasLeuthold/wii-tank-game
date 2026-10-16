@@ -167,6 +167,7 @@ h3 { margin: 0 0 8px; font-size: 20px; }
 .help-card { background: #fff; border-radius: 16px; padding: 12px 14px; text-align: left; border: 3px solid #cfdcec; }
 .help-card.p1 { border-color: #8fb8ee; }
 .help-card.p2 { border-color: #eea19c; }
+.help-card.solo { grid-column: 1 / -1; }
 .help-card p { margin: 6px 0; }
 .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; color: #fff; vertical-align: middle; }
 .chip.blue { background: #2f6ed8; }
