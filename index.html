@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tanks! Couch Co-op</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="stage">
+  <canvas id="game"></canvas>
+
+  <div id="ui">
+    <!-- Title -->
+    <section class="screen" id="screen-title">
+      <div class="panel">
+        <h1 class="logo">TANKS!</h1>
+        <p class="tagline">Couch co-op &middot; 20 missions</p>
+        <div class="buttons">
+          <button class="btn primary" data-action="continue" id="btn-continue">
+            Continue <small id="continue-info"></small>
+          </button>
+          <button class="btn" data-action="new2">New game &middot; 2 players</button>
+          <button class="btn" data-action="new1">New game &middot; 1 player</button>
+          <button class="btn" data-goto="missions">Select mission</button>
+          <div class="row">
+            <button class="btn ghost" data-goto="options">Options</button>
+            <button class="btn ghost" data-goto="help">How to play</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Mission select -->
+    <section class="screen" id="screen-missions">
+      <div class="panel wide">
+        <h2>Select mission</h2>
+        <div class="seg" id="player-toggle">
+          <button data-action="sel-players" data-players="1">1 player</button>
+          <button data-action="sel-players" data-players="2">2 players</button>
+        </div>
+        <div class="mission-grid" id="mission-grid"></div>
+        <div class="buttons">
+          <button class="btn ghost" data-goto="title">Back</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Options -->
+    <section class="screen" id="screen-options">
+      <div class="panel">
+        <h2>Options</h2>
+        <div class="opt-list">
+          <div class="opt">
+            <span>Friendly fire<small>Your bullets and mines can hit your teammate and you.</small></span>
+            <button class="toggle" data-action="opt" data-key="friendlyFire"></button>
+          </div>
+          <div class="opt">
+            <span>Steering<small>Tank: left/right rotates, up/down drives. Direction: tank turns to face the arrow you press.</small></span>
+            <button class="toggle" data-action="opt" data-key="steering"></button>
+          </div>
+          <div class="opt">
+            <span>Sound<small>Also toggle in-game with M.</small></span>
+            <button class="toggle" data-action="opt" data-key="sound"></button>
+          </div>
+          <div class="opt">
+            <span>Saved progress<small>Clears missions cleared and your continue point.</small></span>
+            <button class="toggle danger" data-action="reset-save" id="btn-reset">Reset</button>
+          </div>
+        </div>
+        <div class="buttons">
+          <button class="btn ghost" data-goto="title">Back</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Help -->
+    <section class="screen" id="screen-help">
+      <div class="panel wide">
+        <h2>How to play</h2>
+        <div class="help-cols">
+          <div class="help-card p1">
+            <h3>Player 1 <span class="chip blue">Blue</span></h3>
+            <p><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> drive</p>
+            <p><kbd>Space</kbd> shoot</p>
+            <p>Hold <kbd>Space</kbd> or press <kbd>E</kbd> to drop a mine</p>
+          </div>
+          <div class="help-card p2">
+            <h3>Player 2 <span class="chip red">Red</span></h3>
+            <p><kbd>&uarr;</kbd><kbd>&larr;</kbd><kbd>&darr;</kbd><kbd>&rarr;</kbd> drive</p>
+            <p><kbd>0</kbd> shoot (top row or numpad)</p>
+            <p>Hold <kbd>0</kbd> or press <kbd>Num .</kbd> / <kbd>Enter</kbd> to drop a mine</p>
+          </div>
+        </div>
+        <ul class="rules">
+          <li>Shots go where your tank faces. They bounce off walls once, then pop.</li>
+          <li>Each tank can have 5 shots and 2 mines out at once. Shots that hit each other both pop.</li>
+          <li>A mine goes off after 10 s, when an enemy drives close, or when it gets shot. The blast also breaks cork blocks.</li>
+          <li>Destroy every enemy tank to clear the mission. If all players are destroyed, you lose a life and retry. Every 5 missions cleared gives you an extra life.</li>
+          <li><kbd>Esc</kbd> / <kbd>P</kbd> pause &middot; <kbd>M</kbd> mute. Progress saves automatically.</li>
+        </ul>
+        <div class="buttons">
+          <button class="btn ghost" data-goto="title">Back</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pause -->
+    <section class="screen" id="screen-pause">
+      <div class="panel">
+        <h2>Paused</h2>
+        <div class="buttons">
+          <button class="btn primary" data-action="resume">Resume</button>
+          <button class="btn" data-action="restart">Restart mission</button>
+          <button class="btn" data-goto="missions">Select mission</button>
+          <button class="btn ghost" data-action="quit">Main menu</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Game over -->
+    <section class="screen" id="screen-gameover">
+      <div class="panel">
+        <h2 class="big red-text">Game Over</h2>
+        <p class="summary" id="gameover-info"></p>
+        <div class="buttons">
+          <button class="btn primary" data-action="retry">Try again</button>
+          <button class="btn ghost" data-action="quit">Main menu</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Victory -->
+    <section class="screen" id="screen-victory">
+      <div class="panel">
+        <h2 class="big">All missions cleared!</h2>
+        <p class="summary" id="victory-info"></p>
+        <div class="buttons">
+          <button class="btn primary" data-action="quit">Main menu</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/levels.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/art.js"></script>
+<script src="js/sprites.js"></script>
+<script src="js/world.js"></script>
+<script src="js/entities.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
