@@ -13,6 +13,7 @@ const Save = {
     if (!d || typeof d !== 'object') d = {};
     d.cleared = d.cleared && typeof d.cleared === 'object' ? d.cleared : {};
     d.seen = d.seen && typeof d.seen === 'object' ? d.seen : {};
+    d.medals = d.medals && typeof d.medals === 'object' ? d.medals : {};
     d.options = { ...DEFAULT_OPTIONS, ...(d.options || {}) };
     if (d.progress && !(d.progress.mission >= 0 && d.progress.mission < LEVELS.length)) delete d.progress;
     this.data = d;
@@ -27,7 +28,15 @@ const Save = {
   // Enemy types already introduced with a "New enemy!" card.
   markSeen(types) { for (const k of types) this.data.seen[k] = true; this.write(); },
   setOptions(o) { this.data.options = { ...o }; this.write(); },
-  reset() { this.data = { cleared: {}, seen: {}, options: this.data.options }; this.write(); },
+  // Keep the best medal and the best time separately; returns what improved.
+  recordMedal(i, medal, time) {
+    const old = this.data.medals[i] || { medal: 0, time: Infinity };
+    const better = { medal: medal > old.medal, time: time < old.time };
+    this.data.medals[i] = { medal: Math.max(medal, old.medal), time: Math.round(Math.min(time, old.time) * 10) / 10 };
+    this.write();
+    return better;
+  },
+  reset() { this.data = { cleared: {}, seen: {}, medals: {}, options: this.data.options }; this.write(); },
 };
 
 // What makes each enemy special, for the "Enemy tanks" screen.
@@ -212,14 +221,28 @@ const UI = {
       const i = +b.dataset.index;
       b.classList.toggle('cleared', !!Save.data.cleared[i]);
       b.classList.toggle('resume', !!prog && prog.mission === i);
-      let chk = b.querySelector('.check');
-      if (Save.data.cleared[i] && !chk) {
-        chk = document.createElement('span');
-        chk.className = 'check';
-        chk.textContent = '✓';
+      // Badge: best medal (or a tick for clears from before medals existed) + best time.
+      const m = Save.data.medals[i];
+      b.querySelector('.check')?.remove();
+      b.querySelector('.best')?.remove();
+      if (Save.data.cleared[i] || m) {
+        const chk = document.createElement('span');
+        chk.className = 'check' + (m ? ` medal medal-${m.medal}` : '');
+        chk.textContent = m ? '★' : '✓';
+        chk.title = m ? `${MEDALS[m.medal].name} medal` : 'Cleared';
         b.appendChild(chk);
-      } else if (!Save.data.cleared[i] && chk) chk.remove();
+      }
+      if (m) {
+        const best = document.createElement('div');
+        best.className = 'best';
+        best.textContent = `best ${fmtTime(m.time)} · par ${fmtTime(parTime(LEVELS[i]))}`;
+        b.appendChild(best);
+      }
     }
+    const count = [0, 0, 0, 0];
+    for (const m of Object.values(Save.data.medals)) count[m.medal]++;
+    document.getElementById('medal-summary').innerHTML = [3, 2, 1]
+      .map(t => `<span><span class="check medal medal-${t}">★</span>${count[t]} ${MEDALS[t].name}</span>`).join('');
   },
 
   refreshOptions() {

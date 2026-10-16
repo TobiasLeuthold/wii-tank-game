@@ -93,6 +93,9 @@ class TankGame {
     this.tanks = []; this.bullets = []; this.mines = []; this.particles = []; this.floaters = [];
     this.wrecks = [];
     this.missionKills = [0, 0];
+    this.missionTime = 0;    // seconds of actual play, for medals
+    this.missionDeaths = 0;  // player tanks destroyed this attempt
+    this.lastMedal = null;
     this.newDecals();
     this.rebuildLayers();
     const w = this.world, center = c => (c + 0.5) * CELL;
@@ -114,6 +117,7 @@ class TankGame {
   loadMission(index, demo = false) {
     this.missionIndex = index;
     this.setupLevel(LEVELS[index], index + 1, demo ? 0 : this.numPlayers);
+    this.par = parTime(LEVELS[index]);
     this.newEnemies = [];
     if (!demo) {
       // Introduce enemy types the players haven't met yet (at most 3 per intro).
@@ -146,6 +150,7 @@ class TankGame {
     vs.settle = null;
     vs.arena = VERSUS_ARENAS[arena].name;
     this.setupLevel(VERSUS_ARENAS[arena], 100 + arena, 2);
+    this.par = null;
     this.newEnemies = [];
     this.state = 'intro';
     this.stateTimer = 2.2;
@@ -234,11 +239,16 @@ class TankGame {
 
   missionCleared() {
     this.state = 'cleared';
-    this.stateTimer = 3.2;
+    this.stateTimer = 4.0;
     for (const b of this.bullets) destroyBullet(this, b, true);
     this.bullets = [];
     Sound.jingle('clear');
     Save.markCleared(this.missionIndex);
+    const par = parTime(LEVELS[this.missionIndex]);
+    const clean = this.missionDeaths === 0, fast = this.missionTime <= par;
+    const medal = clean && fast ? 3 : clean || fast ? 2 : 1;
+    const better = Save.recordMedal(this.missionIndex, medal, this.missionTime);
+    this.lastMedal = { medal, time: this.missionTime, par, clean, fast, better };
   }
 
   missionFailed() {
@@ -420,6 +430,7 @@ class TankGame {
   }
 
   updatePlay(dt) {
+    this.missionTime += dt;
     for (const t of this.tanks) {
       if (!t.alive) continue;
       t.cooldown -= dt;
@@ -540,7 +551,7 @@ class TankGame {
       else Sprites.intro(ctx, this);
     }
     if (this.startFlash > 0) Sprites.startFlash(ctx, this.startFlash / 0.9);
-    if (st === 'cleared' && this.stateTimer < 2.8) Sprites.result(ctx, this, true);
+    if (st === 'cleared' && this.stateTimer < 3.6) Sprites.result(ctx, this, true);
     if (st === 'failed' && this.stateTimer < 2.4) Sprites.result(ctx, this, false);
     if (st === 'roundover' && this.stateTimer < 2.2) Sprites.roundResult(ctx, this.vs);
   }

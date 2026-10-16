@@ -90,6 +90,17 @@ const DEFAULT_OPTIONS = { friendlyFire: true, aimLine: true, steering: 'tank', m
 
 const FONT = '"Fredoka", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
 
+// ---- Medals ---------------------------------------------------------------
+// Gold: no tank lost AND within par time. Silver: one of the two. Bronze: cleared.
+const MEDALS = [null,
+  { name: 'Bronze', color: '#cd7f32', light: '#f0b27a' },
+  { name: 'Silver', color: '#9ea7b0', light: '#e8edf2' },
+  { name: 'Gold', color: '#e0a800', light: '#ffe48a' },
+];
+// Par time grows with the number of enemies, rounded up to 5 s.
+function parTime(level) { return Math.ceil((15 + 8 * levelEnemies(level).length) / 5) * 5; }
+function fmtTime(s) { s = Math.floor(s); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
+
 // ---- Small helpers --------------------------------------------------------
 const TAU = Math.PI * 2;
 function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }

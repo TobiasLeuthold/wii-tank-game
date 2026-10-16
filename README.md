@@ -22,6 +22,7 @@ Esc / P pauses, and M turns music on/off.
 
 - 20 missions with 9 enemy tank types. The **Enemy tanks** screen in the main menu explains what each one does.
 - The first time an enemy type appears, the mission intro introduces it with a "New enemy!" card.
+- Medals per mission (gold, silver, bronze) for clearing fast and without losing a tank, with best times.
 - Co-op revive: drive onto your teammate's wreck for 2 seconds to bring them back.
 - Versus mode: P1 vs P2 in 5 arenas, first to 3 round wins.
 - Progress saves automatically in the browser. Use **Continue** to resume, or **Select mission** to start any mission.

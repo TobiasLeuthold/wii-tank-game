@@ -427,6 +427,19 @@ const Sprites = {
       ctx.fillText(`Versus · Round ${game.vs.round} · First to ${VS_WINS}`, WORLD_W / 2, y + h / 2 + 1);
       return;
     }
+    if (game.par) {
+      // Mission clock vs par time (top border).
+      const tw = 190, tx = WORLD_W / 2 - tw / 2;
+      ctx.fillStyle = 'rgba(40,25,10,0.6)';
+      roundRectPath(ctx, tx, 7, tw, 26, 13);
+      ctx.fill();
+      ctx.font = `700 15px ${FONT}`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = game.missionTime <= game.par ? '#ffe48a' : '#f2b2a8';
+      ctx.fillText(`${fmtTime(game.missionTime)}  ·  par ${fmtTime(game.par)}`, WORLD_W / 2, 21);
+      ctx.fillStyle = '#fff';
+      ctx.font = `700 20px ${FONT}`;
+    }
     ctx.textAlign = 'left';
     ctx.fillText(`Mission ${game.missionIndex + 1}`, x + 16, y + h / 2 + 1);
     this.tankIcon(ctx, x + 172, y + h / 2, '#f3e3c3', 0.55);
@@ -641,8 +654,47 @@ const Sprites = {
     ctx.restore();
   },
 
+  // Medal with ribbon; tier 1..3 = bronze, silver, gold.
+  medal(ctx, x, y, r, tier) {
+    const m = MEDALS[tier];
+    ctx.save();
+    ctx.fillStyle = '#c8302c';
+    ctx.beginPath();
+    ctx.moveTo(x - r * 0.75, y - r * 1.55); ctx.lineTo(x - r * 0.2, y - r * 1.55);
+    ctx.lineTo(x + r * 0.2, y - r * 0.6); ctx.lineTo(x - r * 0.35, y - r * 0.6);
+    ctx.fill();
+    ctx.fillStyle = '#3d8fe0';
+    ctx.beginPath();
+    ctx.moveTo(x + r * 0.75, y - r * 1.55); ctx.lineTo(x + r * 0.2, y - r * 1.55);
+    ctx.lineTo(x - r * 0.2, y - r * 0.6); ctx.lineTo(x + r * 0.35, y - r * 0.6);
+    ctx.fill();
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.35, r * 0.1, x, y, r);
+    g.addColorStop(0, m.light);
+    g.addColorStop(1, m.color);
+    ctx.fillStyle = g;
+    ctx.strokeStyle = shade(m.color, -0.35);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TAU);
+    ctx.fill();
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, r * 0.74, 0, TAU);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5, rr = i % 2 ? r * 0.2 : r * 0.46;
+      ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr);
+    }
+    ctx.fill();
+    ctx.restore();
+  },
+
   result(ctx, game, cleared) {
-    const y = this.card(ctx, 170);
+    const y = this.card(ctx, cleared && game.lastMedal ? 230 : 170);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = cleared ? '#2f7d32' : '#b5262a';
@@ -653,7 +705,40 @@ const Sprites = {
     if (cleared) {
       const parts = [];
       for (let i = 0; i < game.numPlayers; i++) parts.push(`${PLAYER_STYLE[i].label}: ${game.missionKills[i]} destroyed`);
-      ctx.fillText(parts.join('      '), WORLD_W / 2, y + 115);
+      const m = game.lastMedal;
+      if (!m) { ctx.fillText(parts.join('      '), WORLD_W / 2, y + 115); return; }
+      // medal + how it was earned
+      const md = MEDALS[m.medal];
+      const line1 = `${md.name} medal`;
+      const lost = game.missionDeaths;
+      const line2 = `Time ${fmtTime(m.time)} (par ${fmtTime(m.par)})  ·  ${lost ? `${lost} tank${lost > 1 ? 's' : ''} lost` : 'no tanks lost'}`;
+      ctx.font = `700 28px ${FONT}`;
+      const w1 = ctx.measureText(line1).width;
+      ctx.font = `600 18px ${FONT}`;
+      const w2 = ctx.measureText(line2).width;
+      const groupW = 64 + Math.max(w1, w2), x0 = WORLD_W / 2 - groupW / 2;
+      this.medal(ctx, x0 + 24, y + 126, 22, m.medal);
+      ctx.textAlign = 'left';
+      ctx.font = `700 28px ${FONT}`;
+      ctx.fillStyle = shade(md.color, -0.3);
+      ctx.fillText(line1, x0 + 64, y + 112);
+      if (m.better.medal || m.better.time) {
+        const tag = m.better.medal ? 'New best!' : 'New best time!';
+        ctx.font = `700 13px ${FONT}`;
+        const tw = ctx.measureText(tag).width + 16;
+        ctx.fillStyle = '#c8302c';
+        roundRectPath(ctx, x0 + 72 + w1, y + 101, tw, 22, 11);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillText(tag, x0 + 80 + w1, y + 113);
+      }
+      ctx.font = `600 18px ${FONT}`;
+      ctx.fillStyle = '#4a3a2a';
+      ctx.fillText(line2, x0 + 64, y + 144);
+      ctx.textAlign = 'center';
+      ctx.font = `600 19px ${FONT}`;
+      ctx.fillStyle = '#7a6a5a';
+      ctx.fillText(parts.join('      '), WORLD_W / 2, y + 190);
     } else {
       const left = game.lives - 1;
       ctx.fillText(left > 0 ? `Lives left: ${left}` : 'No lives left', WORLD_W / 2, y + 115);

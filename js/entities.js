@@ -145,6 +145,7 @@ function killTank(game, t, killer) {
   Art.decalCross(game.dctx, t.x, t.y, t.colors.body);
   Sound.explode(false);
   game.shake = Math.max(game.shake, 5);
+  if (t.team === 'player') game.missionDeaths++;
   if (t.team === 'player' && game.reviveEnabled) {
     game.wrecks.push({ playerIndex: t.playerIndex, x: t.x, y: t.y, progress: 0 });
   }

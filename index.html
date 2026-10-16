@@ -42,6 +42,7 @@
     <section class="screen" id="screen-missions">
       <div class="panel wide">
         <h2>Select mission</h2>
+        <div class="medal-summary" id="medal-summary" title="Gold: no tank lost and under par time. Silver: one of the two. Bronze: cleared."></div>
         <div class="seg" id="player-toggle">
           <button data-action="sel-players" data-players="1">1 player</button>
           <button data-action="sel-players" data-players="2">2 players</button>
@@ -90,7 +91,7 @@
             <button class="toggle" data-action="opt" data-key="sound"></button>
           </div>
           <div class="opt">
-            <span>Saved progress<small>Clears missions cleared and your continue point.</small></span>
+            <span>Saved progress<small>Clears missions cleared, medals and your continue point.</small></span>
             <button class="toggle danger" data-action="reset-save" id="btn-reset">Reset</button>
           </div>
         </div>
@@ -129,6 +130,7 @@
           <li>A mine goes off after 10 s, when an enemy drives close, or when it gets shot. The blast also breaks cork blocks.</li>
           <li>Versus: P1 against P2 in small arenas with no enemies. The first to win 3 rounds takes the match. Every hit counts, including your own bounced shots.</li>
           <li>Co-op revive: if your teammate is destroyed, drive onto the pulsing ring at their wreck and stay there for 2 seconds. They come back with a short shield.</li>
+          <li>Medals: <b>Gold</b> for clearing a mission with no tank lost and under the par time (shown at the top), <b>Silver</b> for one of the two, <b>Bronze</b> for clearing it.</li>
           <li>Destroy every enemy tank to clear the mission. If all players are destroyed at once, you lose a life and retry. Every 5 missions cleared gives you an extra life.</li>
           <li><kbd>Esc</kbd> / <kbd>P</kbd> pause &middot; <kbd>M</kbd> music on/off. Progress saves automatically.</li>
         </ul>
